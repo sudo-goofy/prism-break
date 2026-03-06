@@ -22,10 +22,3 @@ Die Farbe ist übrigens *sehr* französisch.
 
 Einfach öffnen. Drehen. Denken. Lösen. Staunen.
 
-## Zielgruppe
-
-IT-Azubis im ersten Lehrjahr, die gerade herausfinden, dass `255` und `FF` dasselbe bedeuten — und dass das irgendwie cool ist.
-
----
-
-*Made with ☕ und zu viel Begeisterung für Yves Klein.*
