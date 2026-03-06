@@ -367,7 +367,7 @@
         }
 
         #real-hex-input {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 140px;
@@ -926,36 +926,36 @@
             displayRot.y = lerp(displayRot.y, currentRot.y, LERP_FACTOR);
             updateOctahedron();
 
-            if (isInputActive && !isSolved) {
-                const rect = fakeInput.getBoundingClientRect();
-                gsap.set(realInput, {
-                    x: rect.left,
-                    y: rect.top,
-                    width: rect.width,
-                    height: rect.height
-                });
+            // Nur repositionieren solange die Tastatur noch NICHT offen ist
+            if (isInputActive && !isSolved && document.activeElement !== realInput) {
+                positionRealInput();
             }
         });
+
+        function positionRealInput() {
+            const rect = fakeInput.getBoundingClientRect();
+            // Direkt left/top setzen (kein GSAP-Transform) — robuster auf Mobile
+            realInput.style.left = rect.left + 'px';
+            realInput.style.top = rect.top + 'px';
+            realInput.style.width = rect.width + 'px';
+            realInput.style.height = rect.height + 'px';
+            realInput.style.transform = 'none';
+        }
 
         function activateRealInput() {
             isInputActive = true;
             realInput.style.pointerEvents = 'auto';
-
-            const rect = fakeInput.getBoundingClientRect();
-            gsap.set(realInput, {
-                x: rect.left,
-                y: rect.top,
-                width: rect.width,
-                height: rect.height
-            });
-
+            positionRealInput();
             realInput.value = fakeInput.innerText !== '#???' ? fakeInput.innerText : '';
-            realInput.focus();
+            // Kein focus() hier — erst nach der Snap-Animation (showRealInputVisually)
+            // Verhindert, dass die iPad-Tastatur während der Animation aufgeht und das Layout verschiebt
         }
 
         function showRealInputVisually() {
             if (isInputActive) {
+                positionRealInput(); // Finale Position nach abgeschlossener Animation
                 gsap.to(realInput, { opacity: 1, duration: 0.2 });
+                realInput.focus();
             }
         }
 
