@@ -1,24 +1,20 @@
 # 🔮 Prism Break
 
-> Ein magischer Oktaeder weiß die Antwort. Du (noch) nicht.
+> Ein interaktives Einstiegsrätsel zum Thema Hexadezimalsystem.
 
-Ein interaktives Rätsel für alle, die dachten, Hexadezimal wäre nur etwas für Leute, die gern mit Taschenlampen auf Computerbildschirme leuchten.
+Ein 3D-Oktaeder zeigt auf seinen Flächen Farbwerte in verschiedenen Darstellungsformen — dezimal, binär und als Hinweis. Die Aufgabe: die Farbe identifizieren und ihren Hex-Code eingeben.
 
-## Was passiert hier?
+## Konzept
 
-Ein 3D-Oktaeder schwebt im Raum. Auf seinen Flächen verstecken sich Hinweise zu einer ganz bestimmten Farbe. Deine Aufgabe: Die Farbe identifizieren und ihren Hex-Code eingeben.
-
-Die Farbe ist übrigens *sehr* französisch.
+Schülerinnen und Schüler erkunden die Verbindung zwischen RGB-Farbwerten und ihrer hexadezimalen Darstellung. Der Oktaeder regt dabei zur aktiven Auseinandersetzung an, bevor das Thema im Unterricht formal eingeführt wird.
 
 ## Stack
 
-- HTML, CSS, vanilla JS — kein Framework, kein Build-Step, keine Ausreden
-- [GSAP](https://gsap.com/) für Animationen, die sich nach Magie anfühlen
-- Google Fonts, weil Comic Sans keine Option war
+- HTML, CSS, Vanilla JS
+- [GSAP](https://gsap.com/) für Animationen
+- Google Fonts (Outfit, Space Mono, Rubik Puddles)
 
 ## Live
 
 **[sudo-goofy.github.io/prism-break](https://sudo-goofy.github.io/prism-break/)**
-
-Einfach öffnen. Drehen. Denken. Lösen. Staunen.
 
