@@ -478,15 +478,9 @@
             height: 70vh;
             background: radial-gradient(ellipse at 50% 15vh, rgba(0, 47, 167, 0.8) 0%, rgba(0, 47, 167, 0.4) 40%, rgba(0, 47, 167, 0) 80%);
             opacity: 0;
-            transition: opacity 1.5s ease-in-out;
-            transition-delay: 1.4s;
             pointer-events: none;
             z-index: 2;
             will-change: opacity;
-        }
-
-        #success-scene.active .light-beam {
-            opacity: 1;
         }
 
         /* Papier-Boden */
@@ -498,16 +492,9 @@
             height: 50vh;
             background: linear-gradient(to bottom, rgba(244, 244, 240, 0) 0%, var(--paper-color) 40%, var(--paper-color) 100%);
             transform: translateY(100%);
-            transition: transform 2.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            transition-delay: 2.2s;
             z-index: 1;
             will-change: transform;
             visibility: hidden;
-        }
-
-        #success-scene.active .ground-glow {
-            transform: translateY(0%);
-            visibility: visible;
         }
 
         /* Crowd-Bild */
@@ -522,8 +509,6 @@
             height: auto;
             transform-origin: bottom center;
             transform: translateY(100%) scale(1.1);
-            transition: transform 6s cubic-bezier(0.1, 0.8, 0.2, 1);
-            transition-delay: 2.5s;
             filter:
                 drop-shadow(0px -4px 2px rgba(255, 255, 255, 1.0))
                 drop-shadow(0px -10px 10px rgba(200, 240, 255, 0.8))
@@ -531,11 +516,6 @@
             z-index: 5;
             will-change: transform;
             visibility: hidden;
-        }
-
-        #success-scene.active .crowd-img {
-            transform: translateY(0%) scale(1);
-            visibility: visible;
         }
 
         /* Yay-Text */
@@ -1253,12 +1233,17 @@
             deactivateRealInput();
             gsap.killTweensOf(messageArea);
 
-            // Phase 0: VERIFICATION — Eingabe wird animiert geprüft
+            // Akt 1: TENSION — Welt dimmt, Spannung baut auf
+            gsap.to('#particles', { opacity: 0.2, duration: 1.5, ease: 'power1.in' });
+            gsap.to('#octahedron-wrapper', {
+                boxShadow: '0 0 40px rgba(0,47,167,0.3)',
+                duration: 1.5
+            });
+
             messageArea.className = 'msg-verifying';
             messageArea.innerHTML = '▶ PRÜFE EINGABE<span class="dots">...</span>';
             gsap.set(messageArea, { autoAlpha: 1, y: 0 });
 
-            // Dot-Animation im Text
             let dotCount = 0;
             const dotsEl = messageArea.querySelector('.dots');
             const dotInterval = setInterval(() => {
@@ -1266,14 +1251,12 @@
                 if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount || 1);
             }, 200);
 
-            // Nach 1.6s: Verifiziert!
             setTimeout(() => {
                 clearInterval(dotInterval);
                 messageArea.className = 'msg-verified';
                 messageArea.innerHTML = '✓ VERIFIZIERT — CODE KORREKT';
                 gsap.fromTo(messageArea, { scale: 0.9 }, { scale: 1.05, duration: 0.15, yoyo: true, repeat: 1 });
 
-                // Nach 0.8s: Message weg, Implosion starten
                 setTimeout(() => {
                     gsap.to(messageArea, { autoAlpha: 0, y: 20, duration: 0.3 });
                     gsap.to(controlsContainer, { scale: 0, duration: 0.3 });
@@ -1296,66 +1279,78 @@
 
             const flash = document.getElementById('flash-overlay');
             const yayText = document.querySelector('.yay-text');
+            const lightBeam = document.querySelector('.light-beam');
+            const groundGlow = document.querySelector('.ground-glow');
+            const crowdImg = document.querySelector('.crowd-img');
 
-            // Zielposition: 15vh (wo Yay erscheint)
             const targetY = window.innerHeight * 0.15 - window.innerHeight * 0.5;
 
             const tl = gsap.timeline();
 
-            // Phase 1: CHARGE + AUFSTIEG zum Yay-Punkt (0 → 1.4s)
-            tl.to(currentRot, { y: '+=360', x: 0, duration: 1.4, ease: 'power1.in' })
-              .to('#octahedron-wrapper', { scale: 1.25, y: targetY, duration: 1.4, ease: 'power2.inOut' }, '<');
+            // Akt 2: ASCENSION — Aufstieg mit blauem Glow (0 → 1.6s)
+            tl.to(currentRot, { y: '+=360', x: 0, duration: 1.6, ease: 'sine.in' })
+              .to('#octahedron-wrapper', { scale: 1.2, y: targetY, duration: 1.6, ease: 'power2.inOut' }, '<')
+              .to('#particles', { opacity: 0, duration: 1.2 }, '<');
 
-            // Phase 2: HELD BREATH (1.4 → 1.8s)
-            tl.to('#octahedron-wrapper', { scale: 1.12, duration: 0.4, ease: 'sine.inOut' });
+            // Akt 2b: HELD BREATH (1.6 → 2.1s)
+            tl.to('#octahedron-wrapper', { scale: 1.08, duration: 0.5, ease: 'sine.inOut' });
 
-            // Phase 3: IMPLOSION (1.8 → 2.4s)
-            tl.to(currentRot, { y: '+=540', duration: 0.6, ease: 'power2.in' })
-              .to('#octahedron-wrapper', { scale: 0, duration: 0.55, ease: 'power3.in' }, '<');
+            // Akt 3: IMPLOSION (2.1 → 2.8s)
+            tl.to(currentRot, { y: '+=540', duration: 0.7, ease: 'power2.in' })
+              .to('#octahedron-wrapper', { scale: 0, duration: 0.65, ease: 'power3.in' }, '<');
 
-            // Phase 4: TRANSFORMATION — Oktaeder wird zu Yay
+            // Akt 3b: BEAT DER STILLE (0.3s Dunkelheit)
             tl.add(() => {
                 octahedron.classList.add('solved');
+            });
+            tl.to({}, { duration: 0.3 });
 
-                // Flash
-                gsap.fromTo(flash,
-                    { opacity: 0 },
-                    { opacity: 0.85, duration: 0.06,
-                      onComplete: () => gsap.to(flash, { opacity: 0, duration: 2.0, ease: 'power2.out' })
-                    }
-                );
-
+            // Akt 4: BIRTH — Flash baut auf, nicht schlagartig
+            tl.to(flash, { opacity: 0.7, duration: 0.2, ease: 'power2.in' })
+              .add(() => {
                 document.body.classList.add('camera-shake');
-                setTimeout(() => document.body.classList.remove('camera-shake'), 500);
-
+                setTimeout(() => document.body.classList.remove('camera-shake'), 600);
                 document.body.classList.add('zoomed-out');
                 document.getElementById('success-scene').classList.add('active');
                 document.getElementById('aurora-halo').classList.add('active');
+                spawnExplosionParticles(window.innerHeight * 0.15);
+              })
+              .to(flash, { opacity: 0, duration: 2.5, ease: 'power1.out' });
 
-                // Yay aus der Implosion heraus aufpoppen
-                gsap.set(yayText, { visibility: 'visible', opacity: 0, scale: 0, rotation: -5 });
+            // Akt 4b: YAY entsteht aus dem Licht (0.4s nach Flash-Peak)
+            tl.set(yayText, { visibility: 'visible', opacity: 0, scale: 0, rotation: -3 }, '-=2.3')
+              .to(yayText, {
+                opacity: 1, scale: 1, rotation: 0,
+                duration: 1.2, ease: 'elastic.out(1, 0.6)',
+              }, '-=2.1');
+
+            // Akt 4c: LIGHT BEAM
+            tl.to(lightBeam, { opacity: 1, duration: 1.5, ease: 'power1.inOut' }, '-=1.8');
+
+            // Akt 5: WORLD REVEAL — Boden + Crowd
+            tl.add(() => {
+                groundGlow.style.visibility = 'visible';
+            }, '-=0.5')
+              .to(groundGlow, { y: 0, duration: 2.5, ease: 'power2.out' }, '-=0.5');
+
+            tl.add(() => {
+                crowdImg.style.visibility = 'visible';
+            }, '-=2.0')
+              .to(crowdImg, { y: 0, scale: 1, duration: 4, ease: 'power2.out' }, '-=2.0');
+
+            // Akt 6: Yay Glow + Float (nach allen Reveals)
+            tl.add(() => {
+                gsap.set(yayText, {
+                    filter: 'drop-shadow(0 0 30px rgba(0, 47, 167, 1.0)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8))'
+                });
                 gsap.to(yayText, {
-                    opacity: 1,
-                    scale: 1,
-                    rotation: 0,
-                    duration: 1.0,
-                    ease: 'back.out(1.4)',
-                    onComplete: () => {
-                        gsap.set(yayText, {
-                            filter: 'drop-shadow(0 0 30px rgba(0, 47, 167, 1.0)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8))'
-                        });
-                        gsap.to(yayText, {
-                            y: -20, duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1,
-                            onUpdate: function() {
-                                const s = 1 + 0.05 * Math.sin(this.progress() * Math.PI);
-                                gsap.set(yayText, { scale: s });
-                            }
-                        });
+                    y: -20, duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1,
+                    onUpdate: function() {
+                        const s = 1 + 0.05 * Math.sin(this.progress() * Math.PI);
+                        gsap.set(yayText, { scale: s });
                     }
                 });
-
-                spawnExplosionParticles(window.innerHeight * 0.15);
-            });
+            }, '-=3.0');
         }
 
         // Initialer Aufruf
