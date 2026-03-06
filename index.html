@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magisches Oktaeder-Rätsel</title>
+    <!-- Matt Blease inspiriert: Kräftige, klare Fonts + Rubik Puddles für die Wolke -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&family=Rubik+Puddles&family=Space+Mono:wght@700&display=swap"
+        rel="stylesheet">
+    <!-- GSAP Bibliothek für butterweiche, bugfreie Animationen -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f4f4f0;
+            /* Hell: Warmes Matt Blease Off-White */
+            --ink-color: #1a1a1a;
+            /* Hell: Dickes Schwarz für die Linien */
+            --paper-color: #f4f4f0;
+            --size: 360px;
+            --height: 311.769px;
+            /* 360 * sqrt(3)/2 */
+            --tz: 180px;
+            --rx-top: 35.264deg;
+            --rx-bot: -35.264deg;
+
+            /* Rätsel-Farben (Ziel Hex: #002FA7) */
+            --color-r: rgb(255, 0, 0);
+            --color-g: rgb(0, 255, 0);
+            --color-b: rgb(0, 0, 255);
+            --color-hint: #ffffff;
+            --light-glow: rgba(0, 47, 167, 0.5);
+            /* Das magische Yves als Licht */
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+            /* Verhindert iOS Pull-to-Refresh & Scroll-Bugs */
+            background-color: var(--bg-color);
+            background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+            background-size: 30px 30px;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--ink-color);
+            transition: background-size 2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Für den Raus-Zoom-Effekt */
+        }
+
+        /* Magische Sterne im Hintergrund */
+        .star {
+            position: absolute;
+            color: #f1c40f;
+            font-size: 20px;
+            pointer-events: none;
+            animation: twinkle 3s infinite ease-in-out alternate;
+            will-change: transform, opacity;
+            contain: layout style;
+        }
+
+        @keyframes twinkle {
+            0% {
+                opacity: 0.1;
+                transform: scale(0.5) rotate(0deg);
+            }
+
+            100% {
+                opacity: 0.8;
+                transform: scale(1.2) rotate(180deg);
+            }
+        }
+
+        #scene-container {
+            width: 100vw;
+            height: 100vh;
+            perspective: 1200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            position: relative;
+        }
+
+        #scene-container:active {
+            cursor: grabbing;
+        }
+
+        #octahedron-wrapper {
+            position: relative;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+
+        /* Der Oktaeder für die Rotation */
+        #octahedron {
+            position: relative;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+
+        .face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--size);
+            height: var(--height);
+            background-color: var(--ink-color);
+            backface-visibility: hidden;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            will-change: transform, opacity;
+        }
+
+        .face:hover .content {
+            filter: brightness(1.1);
+        }
+
+        .face.top {
+            margin-top: calc(-1 * var(--height));
+            margin-left: calc(-0.5 * var(--size));
+            transform-origin: 50% 100%;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .face.bottom {
+            margin-top: 0px;
+            margin-left: calc(-0.5 * var(--size));
+            transform-origin: 50% 0%;
+            clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+        }
+
+        .content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: filter 0.2s;
+        }
+
+        .face.top .content {
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform-origin: 50% 66.6%;
+            transform: scale(0.92);
+        }
+
+        .face.bottom .content {
+            clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+            transform-origin: 50% 33.3%;
+            transform: scale(0.92);
+        }
+
+        .badge {
+            position: absolute;
+            background: #fff;
+            border: 4px solid var(--ink-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--ink-color);
+            box-shadow: 4px 4px 0px var(--ink-color);
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge.hint {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            line-height: 1.2;
+            padding: 16px;
+        }
+
+        .face.top .badge {
+            top: 70%;
+            left: 50%;
+        }
+
+        .face.bottom .badge {
+            top: 30%;
+            left: 50%;
+        }
+
+        .label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .val {
+            font-size: 20px;
+        }
+
+        .bg-r {
+            background-color: var(--color-r);
+        }
+
+        .bg-g {
+            background-color: var(--color-g);
+        }
+
+        .bg-b {
+            background-color: var(--color-b);
+        }
+
+        .bg-hint {
+            background-color: var(--color-hint);
+        }
+
+        .f1 {
+            transform: rotateY(0deg) translateZ(var(--tz)) rotateX(var(--rx-top));
+        }
+
+        .f2 {
+            transform: rotateY(90deg) translateZ(var(--tz)) rotateX(var(--rx-top));
+        }
+
+        .f3 {
+            transform: rotateY(180deg) translateZ(var(--tz)) rotateX(var(--rx-top));
+        }
+
+        .f4 {
+            transform: rotateY(270deg) translateZ(var(--tz)) rotateX(var(--rx-top));
+        }
+
+        .f5 {
+            transform: rotateY(0deg) translateZ(var(--tz)) rotateX(var(--rx-bot));
+        }
+
+        .f6 {
+            transform: rotateY(90deg) translateZ(var(--tz)) rotateX(var(--rx-bot));
+        }
+
+        .f7 {
+            transform: rotateY(180deg) translateZ(var(--tz)) rotateX(var(--rx-bot));
+        }
+
+        .f8 {
+            transform: rotateY(270deg) translateZ(var(--tz)) rotateX(var(--rx-bot));
+        }
+
+        #octahedron.solved .f1 {
+            transform: rotateY(0deg) translateZ(1000px) rotateX(var(--rx-top));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f2 {
+            transform: rotateY(90deg) translateZ(1000px) rotateX(var(--rx-top));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f3 {
+            transform: rotateY(180deg) translateZ(1000px) rotateX(var(--rx-top));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f4 {
+            transform: rotateY(270deg) translateZ(1000px) rotateX(var(--rx-top));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f5 {
+            transform: rotateY(0deg) translateZ(1000px) rotateX(var(--rx-bot));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f6 {
+            transform: rotateY(90deg) translateZ(1000px) rotateX(var(--rx-bot));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f7 {
+            transform: rotateY(180deg) translateZ(1000px) rotateX(var(--rx-bot));
+            opacity: 0;
+        }
+
+        #octahedron.solved .f8 {
+            transform: rotateY(270deg) translateZ(1000px) rotateX(var(--rx-bot));
+            opacity: 0;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(-50%);
+            }
+
+            50% {
+                transform: translateY(-80%);
+            }
+        }
+
+        .lock-icon {
+            position: absolute;
+            left: -48px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        .lock-icon svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Matt Blease Style: Bold lines, high contrast, black & white */
+        .fake-input {
+            width: 140px;
+            height: 56px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid var(--ink-color);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--ink-color);
+            /* Hard shadow, no blur */
+            box-shadow: 6px 6px 0px var(--ink-color);
+            box-sizing: border-box;
+            cursor: pointer;
+            transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .fake-input:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 4px 4px 0px var(--ink-color);
+            background: var(--ink-color);
+            color: #fff;
+            border-color: var(--ink-color);
+        }
+
+        /* Active state for click feeling */
+        .fake-input:active {
+            transform: translate(6px, 6px);
+            box-shadow: 0px 0px 0px var(--ink-color);
+        }
+
+        #real-hex-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 140px;
+            height: 56px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            font-size: 20px;
+            text-align: center;
+            border: 4px solid var(--ink-color);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--ink-color);
+            box-shadow: 6px 6px 0px var(--ink-color);
+            z-index: 1000;
+            outline: none;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #real-hex-input:focus {
+            background: #e8f0fe;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 64px;
+            height: 64px;
+            background: #fff;
+            border: 4px solid var(--ink-color);
+            border-radius: 50%;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--ink-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--ink-color);
+        }
+
+        .control-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--ink-color);
+        }
+
+        #message-area {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 4px solid var(--ink-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 6px 6px 0px var(--ink-color);
+            z-index: 100;
+            width: max-content;
+            max-width: 90vw;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #message-area small {
+            display: block;
+            margin-top: 5px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .msg-error-dec {
+            background-color: #ff4757 !important;
+            color: #fff !important;
+        }
+
+        .msg-error-bin {
+            background-color: #feca57 !important;
+            color: var(--ink-color) !important;
+        }
+
+        .explode-star {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #success-scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        /* Der Lichtkegel (passt sich jetzt schön in den weißen Hintergrund ein) */
+        .light-beam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 70vh; /* Begrenzung auf den oberen Bereich */
+            /* Startet bei 15vh (Text Position) und strahlt nach unten */
+            background: radial-gradient(ellipse at 50% 15vh, rgba(0, 47, 167, 0.8) 0%, rgba(0, 47, 167, 0.4) 40%, rgba(0, 47, 167, 0) 80%);
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            transition-delay: 1.4s;
+            pointer-events: none;
+            z-index: 2;
+            will-change: opacity;
+        }
+
+        #success-scene.active .light-beam {
+            opacity: 1;
+        }
+
+        /* Der Papier-Boden, der das Punkteraster verdeckt */
+        .ground-glow {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 50vh;
+            background: linear-gradient(to bottom, rgba(244, 244, 240, 0) 0%, var(--paper-color) 40%, var(--paper-color) 100%);
+            transform: translateY(100%);
+            transition: transform 2.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            /* Langsameres Sliden */
+            transition-delay: 2.2s;
+            /* Wartet, bis das Yay erschienen ist */
+            z-index: 1;
+            will-change: transform;
+        }
+
+        #success-scene.active .ground-glow {
+            transform: translateY(0%);
+        }
+
+        /* Das Bild liegt ÜBER dem Licht */
+        .crowd-img {
+            position: absolute;
+            bottom: -18vh;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
+            transform-origin: bottom center;
+            transform: translateY(100%) scale(1.1);
+            transition: transform 12s cubic-bezier(0.1, 0.8, 0.2, 1);
+            /* 5s für extrem langsames, episches Erscheinen */
+            transition-delay: 3s;
+            /* Wartet geduldig auf das Yay */
+
+            /* WICHTIG: Da das Bild transparent ist, brauchen wir KEIN Multiply! */
+            /* mix-blend-mode: multiply;  <-- ENTFERNT */
+
+            /* EXTREMER GLOW: Wir stapeln mehrere Schatten für maximalen Backlight-Effekt */
+            filter:
+                drop-shadow(0px -4px 2px rgba(255, 255, 255, 1.0))
+                /* Hartes, helles Licht an der Kante */
+                drop-shadow(0px -10px 10px rgba(200, 240, 255, 0.8))
+                /* Mittlerer Schein (leicht bläulich) */
+                drop-shadow(0px -30px 40px rgba(200, 240, 255, 0.5));
+            /* Großer diffuser Schein */
+
+            /* Optional: Helligkeit leicht anheben, damit sie nicht zu schwarz wirken */
+            /* brightness(1.2) */
+
+            opacity: 1.0;
+            z-index: 5;
+            will-change: transform;
+        }
+
+        #success-scene.active .crowd-img {
+            transform: translateY(0%) scale(1);
+        }
+
+        /* Rubik Puddles Text (Weiß mit dicker schwarzer Umrandung) */
+        .yay-text {
+            position: absolute;
+            top: 15vh;
+            left: 50%;
+            margin: 0;
+            font-family: 'Rubik Puddles', cursive;
+            font-size: 140px;
+
+            /* Basis-Text Style: Weiß mit weißer Umrandung (fetter) */
+            background: none;
+            color: #ffffff;
+            -webkit-text-stroke: 3px #ffffff;
+            
+            /* Yves Klein Blau #002FA7 leuchten */
+            filter: drop-shadow(0 0 20px rgba(0, 47, 167, 1)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8));
+
+            /* Sichtbarkeit */
+            opacity: 0;
+            visibility: hidden;
+            /* Fix: Verhindert kurzes Aufblitzen beim Laden */
+            transform: translate(-50%, 0) scale(0) rotate(-10deg);
+
+            /* Transition */
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.8s;
+            transition-delay: 1.4s;
+
+            line-height: 1;
+            letter-spacing: 5px;
+            text-align: center;
+            z-index: 4;
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+
+        /* AURORA BOREALIS HALO - Angepasst auf Yves Blau Sonne */
+        .yay-text::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            /* Begrenzte Größe für den "Zwei Drittel"-Effekt */
+            width: 150vh;
+            height: 150vh;
+            z-index: -1;
+
+            /* Intensiver Yves Blau Gradient, der nach außen transparent wird */
+            background: radial-gradient(circle at 50% 50%,
+                    rgba(0, 47, 167, 0.95) 0%,
+                    rgba(0, 47, 167, 0.6) 30%,
+                    rgba(0, 47, 167, 0.2) 50%,
+                    rgba(0, 47, 167, 0) 70%);
+
+            border-radius: 50%;
+            filter: blur(80px);
+            /* Stärkerer Blur für weiches Licht */
+            opacity: 0;
+            pointer-events: none;
+            will-change: transform, opacity;
+
+            /* Start-Zustand: Klein */
+            transform: translate(-50%, -50%) scale(0.1);
+
+            transition: transform 3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 2s ease-in-out;
+            transition-delay: 1.6s;
+        }
+
+        /* Halo smooth einblenden und vergrößern wenn aktiv */
+        #success-scene.active .yay-text::after {
+            opacity: 1;
+            /* End-Zustand: Riesig */
+            transform: translate(-50%, -50%) scale(1);
+
+            /* Nachdem es sich ausgebreitet hat, soll es pulsieren. 
+               Wir nutzen hier animation-delay, damit das Pulsieren erst nach dem Ausbreiten startet */
+            animation: aurora-pulse 6s ease-in-out infinite alternate 4.6s;
+            /* 1.6s delay + 3s transition */
+        }
+
+        /* TEXT EINBLENDEN */
+        #success-scene.active .yay-text {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1) rotate(0deg);
+
+            /* Kombinierter Filter: Nur noch Glow, kein schwarzer Schatten mehr */
+            filter: drop-shadow(0 0 30px rgba(0, 47, 167, 1.0)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8));
+
+            animation: float-cloud 4s ease-in-out infinite alternate 2.5s;
+        }
+
+        @keyframes aurora-pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        @keyframes god-pulse {
+            0% {
+                filter:
+                    drop-shadow(0px 0px 5px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 30px rgba(255, 100, 255, 0.7)) drop-shadow(0px 0px 80px rgba(100, 200, 255, 0.5)) drop-shadow(6px 6px 0px var(--ink-color));
+            }
+
+            100% {
+                filter:
+                    drop-shadow(0px 0px 15px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 60px rgba(255, 0, 255, 0.9))
+                    /* Neon Magenta */
+                    drop-shadow(0px 0px 120px rgba(0, 200, 255, 0.8))
+                    /* Neon Cyan */
+                    drop-shadow(0px 0px 200px rgba(255, 255, 255, 0.6))
+                    /* Blendendes Weiß */
+                    drop-shadow(6px 6px 0px var(--ink-color));
+            }
+        }
+
+        @keyframes float-cloud {
+            0% {
+                transform: translate(-50%, 0px) scale(1);
+            }
+
+            100% {
+                transform: translate(-50%, -20px) scale(1.05);
+            }
+        }
+
+        /* EPIC FLASH & SHAKE */
+        #flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 9999;
+            will-change: opacity;
+        }
+
+        .camera-shake {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-4px, 0, 0) rotate(-1deg);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(6px, 0, 0) rotate(2deg);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-8px, 0, 0) rotate(-2deg);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(8px, 0, 0) rotate(1deg);
+            }
+        }
+
+        /* Zoom-Out-Klasse für den Hintergrund */
+        body.zoomed-out {
+            background-size: 10px 10px;
+        }
+
+        @media (max-width: 800px) {
+            .yay-text {
+                font-size: 90px;
+            }
+
+            .crowd-img {
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="particles"></div>
+    <div id="flash-overlay"></div>
+    <div id="message-area"></div>
+
+    <div id="controls">
+        <button id="focus-input-btn" class="control-btn" aria-label="Eingabe fokussieren">✎</button>
+        <button id="toggle-rotation-btn" class="control-btn" aria-label="Rotation umschalten">⏸</button>
+    </div>
+
+    <input type="text" id="real-hex-input" placeholder="#???" maxlength="7" autocomplete="off">
+
+    <div id="scene-container">
+        <div id="octahedron-wrapper">
+            <div id="octahedron">
+
+                <div class="face top f1" data-rx="-35.264" data-ry="0">
+                    <div class="content bg-r">
+                        <div class="badge"><span class="label">R</span><span class="val">0</span></div>
+                    </div>
+                </div>
+                <div class="face top f2" data-rx="-35.264" data-ry="-90">
+                    <div class="content bg-g">
+                        <div class="badge"><span class="label">G</span><span class="val">?</span></div>
+                    </div>
+                </div>
+                <div class="face top f3" data-rx="-35.264" data-ry="-180">
+                    <div class="content bg-b">
+                        <div class="badge"><span class="label">B</span><span class="val">167</span></div>
+                    </div>
+                </div>
+                <div class="face top f4" data-rx="-35.264" data-ry="-270">
+                    <div class="content bg-hint">
+                        <div class="badge hint">
+                            <span>Farben des</span><span>Lichts vereint</span><span>in einem Code</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="face bottom f5" data-rx="35.264" data-ry="0">
+                    <div class="content bg-r">
+                        <div class="badge"><span class="label">R</span><span class="val">?</span></div>
+                    </div>
+                </div>
+                <div class="face bottom f6" data-rx="35.264" data-ry="-90">
+                    <div class="content bg-g">
+                        <div class="badge"><span class="label">G</span><span class="val">00101111</span></div>
+                    </div>
+                </div>
+                <div class="face bottom f7" data-rx="35.264" data-ry="-180">
+                    <div class="content bg-b">
+                        <div class="badge"><span class="label">B</span><span class="val">?</span></div>
+                    </div>
+                </div>
+                <!-- Die Hex Face -->
+                <div class="face bottom f8" data-rx="35.264" data-ry="-270">
+                    <div class="content bg-hint">
+                        <div class="badge hint" style="padding: 15px;">
+                            <div class="input-wrapper">
+                                <div class="lock-icon">
+                                    <svg viewBox="0 0 24 24" width="32" height="32">
+                                        <g>
+                                            <rect x="5" y="10" width="14" height="12" rx="2" fill="#fff"
+                                                stroke="var(--ink-color)" stroke-width="2.5" />
+                                            <path d="M12 14v4" stroke="var(--ink-color)" stroke-width="2.5"
+                                                stroke-linecap="round" />
+                                            <path d="M8 10V6a4 4 0 0 1 8 0v4" fill="none" stroke="var(--ink-color)"
+                                                stroke-width="2.5" stroke-linecap="round" />
+                                        </g>
+                                    </svg>
+                                </div>
+                                <div id="fake-input" class="fake-input" style="color: #999;">#???</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Scene -->
+    <div id="success-scene">
+        <!-- Der Lichtkegel -->
+        <div class="light-beam"></div>
+        <!-- Der Papier-Boden für die Zeichnung (blendet das Raster aus) -->
+        <div class="ground-glow"></div>
+        <div class="yay-text">Yay :)</div>
+        <img src="crowd.png" class="crowd-img" alt="Menschenmenge staunt in den Himmel">
+    </div>
+
+    <script>
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.innerHTML = '✦';
+            star.style.left = Math.random() * 100 + 'vw';
+            star.style.top = Math.random() * 100 + 'vh';
+            star.style.animationDelay = (Math.random() * 3) + 's';
+            star.style.fontSize = (Math.random() * 15 + 10) + 'px';
+            particlesContainer.appendChild(star);
+        }
+
+        let currentRot = { x: 15, y: 45 };
+        // Smoothing: displayRot wird per Lerp an currentRot angeglichen
+        let displayRot = { x: 15, y: 45 };
+        let isAutoRotate = true;
+        let isSolved = false;
+        let isDragging = false;
+        let dragMoved = false;
+        let startX, startY;
+        let isInputActive = false;
+
+        // Inertia: Geschwindigkeit tracken
+        let velocity = { x: 0, y: 0 };
+        let lastPointerTime = 0;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+        const FRICTION = 0.94;        // Reibung pro Frame (0.94 = smooth Auslauf)
+        const VELOCITY_MIN = 0.05;    // Ab hier stoppen
+        const LERP_FACTOR = 0.18;     // Interpolations-Stärke (höher = direkter)
+        const DRAG_SENSITIVITY = 0.5; // Drag-Empfindlichkeit
+        const DRAG_THRESHOLD = 5;     // px bevor Drag erkannt wird (besser für Touch)
+
+        const octahedron = document.getElementById('octahedron');
+        const scene = document.getElementById('scene-container');
+        const realInput = document.getElementById('real-hex-input');
+        const fakeInput = document.getElementById('fake-input');
+        const controlsContainer = document.getElementById('controls');
+        const toggleBtn = document.getElementById('toggle-rotation-btn');
+        const focusBtn = document.getElementById('focus-input-btn');
+        const messageArea = document.getElementById('message-area');
+
+        // Sanftes Schweben
+        gsap.to("#octahedron-wrapper", { y: -30, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1 });
+
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function updateOctahedron() {
+            const scale = window.innerWidth < 800 ? 0.7 : 1.35;
+            octahedron.style.transform = `scale(${scale}) rotateX(${displayRot.x}deg) rotateY(${displayRot.y}deg)`;
+        }
+
+        gsap.ticker.add(() => {
+            // Auto-Rotation
+            if (!isSolved && isAutoRotate && !isDragging) {
+                currentRot.y += 0.2;
+                currentRot.x = 15 + Math.sin(Date.now() / 1000) * 15;
+            }
+
+            // Inertia: Geschwindigkeit abbauen wenn nicht gedraggt wird
+            if (!isDragging && (Math.abs(velocity.x) > VELOCITY_MIN || Math.abs(velocity.y) > VELOCITY_MIN)) {
+                currentRot.y += velocity.y;
+                currentRot.x += velocity.x;
+                currentRot.x = Math.max(-80, Math.min(80, currentRot.x));
+                velocity.x *= FRICTION;
+                velocity.y *= FRICTION;
+                if (Math.abs(velocity.x) < VELOCITY_MIN) velocity.x = 0;
+                if (Math.abs(velocity.y) < VELOCITY_MIN) velocity.y = 0;
+            }
+
+            // Smooth Interpolation: displayRot gleitet zu currentRot
+            displayRot.x = lerp(displayRot.x, currentRot.x, LERP_FACTOR);
+            displayRot.y = lerp(displayRot.y, currentRot.y, LERP_FACTOR);
+            updateOctahedron();
+
+            if (isInputActive && !isSolved) {
+                const rect = fakeInput.getBoundingClientRect();
+                gsap.set(realInput, {
+                    x: rect.left,
+                    y: rect.top,
+                    width: rect.width,
+                    height: rect.height
+                });
+            }
+        });
+
+        function activateRealInput() {
+            isInputActive = true;
+            realInput.style.pointerEvents = 'auto';
+
+            const rect = fakeInput.getBoundingClientRect();
+            gsap.set(realInput, {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height
+            });
+
+            realInput.value = fakeInput.innerText !== '#???' ? fakeInput.innerText : '';
+            realInput.focus();
+        }
+
+        function showRealInputVisually() {
+            if (isInputActive) {
+                gsap.to(realInput, { opacity: 1, duration: 0.2 });
+            }
+        }
+
+        function deactivateRealInput() {
+            if (!isInputActive) return;
+            isInputActive = false;
+
+            realInput.style.pointerEvents = 'none';
+            gsap.to(realInput, { opacity: 0, duration: 0.2 });
+            realInput.blur();
+
+            if (realInput.value.trim() !== '' && !isSolved) {
+                validateInput(realInput.value);
+            }
+        }
+
+        realInput.addEventListener('input', () => {
+            let val = realInput.value.toUpperCase();
+            if (val === '') {
+                fakeInput.innerText = '#???';
+                fakeInput.style.color = '#999';
+            } else {
+                fakeInput.innerText = val;
+                fakeInput.style.color = 'var(--ink-color)';
+            }
+            if (val === '002FA7' || val === '#002FA7' || val === '######') triggerSuccess();
+        });
+
+        realInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') deactivateRealInput();
+        });
+
+        function centerFace(targetX, targetY, isHexFace) {
+            gsap.killTweensOf(currentRot);
+            isAutoRotate = false;
+            toggleBtn.innerHTML = '▶';
+            // Inertia stoppen beim Snap
+            velocity.x = 0;
+            velocity.y = 0;
+
+            let currentYMod = currentRot.y % 360;
+            if (currentYMod < 0) currentYMod += 360;
+            let targetYMod = targetY % 360;
+            if (targetYMod < 0) targetYMod += 360;
+
+            let diff = targetYMod - currentYMod;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+
+            if (isHexFace) {
+                activateRealInput();
+            }
+
+            if (Math.abs(diff) < 1 && Math.abs(currentRot.x - targetX) < 1) {
+                currentRot.x = targetX;
+                currentRot.y += diff;
+                displayRot.x = currentRot.x;
+                displayRot.y = currentRot.y;
+                updateOctahedron();
+                if (isHexFace) showRealInputVisually();
+                return;
+            }
+
+            gsap.to(currentRot, {
+                x: targetX,
+                y: currentRot.y + diff,
+                duration: 0.8,
+                ease: "power2.out",
+                onUpdate: () => {
+                    // displayRot direkt mitziehen beim GSAP-Tween
+                    displayRot.x = currentRot.x;
+                    displayRot.y = currentRot.y;
+                    updateOctahedron();
+                },
+                onComplete: () => {
+                    if (isHexFace) showRealInputVisually();
+                }
+            });
+        }
+
+        let pointerDownTarget = null; // Speichert das Element unter dem Finger beim Start
+
+        scene.addEventListener('pointerdown', (e) => {
+            if (isSolved) return;
+
+            const face = e.target.closest('.face');
+            const isHexFace = face && face.classList.contains('f8');
+
+            if (!isHexFace) deactivateRealInput();
+
+            // Pointer Capture für zuverlässiges Tracking auch außerhalb des Elements
+            scene.setPointerCapture(e.pointerId);
+
+            gsap.killTweensOf(currentRot);
+            isDragging = true;
+            dragMoved = false;
+            pointerDownTarget = e.target;
+            startX = e.clientX;
+            startY = e.clientY;
+
+            // Velocity-Tracking Reset
+            velocity.x = 0;
+            velocity.y = 0;
+            lastPointerX = e.clientX;
+            lastPointerY = e.clientY;
+            lastPointerTime = performance.now();
+        });
+
+        scene.addEventListener('pointermove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) dragMoved = true;
+
+            currentRot.y += dx * DRAG_SENSITIVITY;
+            currentRot.x -= dy * DRAG_SENSITIVITY;
+            currentRot.x = Math.max(-80, Math.min(80, currentRot.x));
+
+            // Geschwindigkeit für Inertia tracken
+            const now = performance.now();
+            const dt = now - lastPointerTime;
+            if (dt > 0) {
+                // Exponentieller Durchschnitt für stabile Velociy
+                const instantVX = -(e.clientY - lastPointerY) * DRAG_SENSITIVITY;
+                const instantVY = (e.clientX - lastPointerX) * DRAG_SENSITIVITY;
+                velocity.x = velocity.x * 0.5 + instantVX * 0.5;
+                velocity.y = velocity.y * 0.5 + instantVY * 0.5;
+            }
+            lastPointerX = e.clientX;
+            lastPointerY = e.clientY;
+            lastPointerTime = now;
+
+            startX = e.clientX;
+            startY = e.clientY;
+        });
+
+        // pointerup auf window UND scene (mit Capture) — verhindert "stuck drag"
+        function handlePointerUp(e) {
+            if (!isDragging) return;
+            isDragging = false;
+
+            // Wenn der letzte Pointer-Event zu alt ist, keine Inertia (Finger ruhte)
+            if (performance.now() - lastPointerTime > 80) {
+                velocity.x = 0;
+                velocity.y = 0;
+            }
+
+            if (!dragMoved && !isSolved) {
+                // Velocity zurücksetzen bei Tap
+                velocity.x = 0;
+                velocity.y = 0;
+
+                const face = pointerDownTarget && pointerDownTarget.closest('.face');
+                if (face) {
+                    const targetX = parseFloat(face.dataset.rx);
+                    const targetY = parseFloat(face.dataset.ry);
+                    const isHexFace = face.classList.contains('f8');
+
+                    if (!isNaN(targetX) && !isNaN(targetY)) {
+                        centerFace(targetX, targetY, isHexFace);
+                    }
+                }
+            }
+            pointerDownTarget = null;
+        }
+
+        scene.addEventListener('pointerup', handlePointerUp);
+        scene.addEventListener('pointercancel', handlePointerUp);
+        window.addEventListener('pointerup', handlePointerUp);
+
+        toggleBtn.addEventListener('pointerdown', e => e.stopPropagation());
+        toggleBtn.addEventListener('click', () => {
+            isAutoRotate = !isAutoRotate;
+            toggleBtn.innerHTML = isAutoRotate ? '⏸' : '▶';
+            if (isAutoRotate) deactivateRealInput();
+        });
+
+        focusBtn.addEventListener('pointerdown', e => e.stopPropagation());
+        focusBtn.addEventListener('click', () => {
+            const targetX = 35.264;
+            const targetY = -270;
+            centerFace(targetX, targetY, true);
+        });
+
+        function showMessage(html, typeClass) {
+            messageArea.innerHTML = html;
+            messageArea.className = typeClass;
+
+            gsap.killTweensOf(messageArea);
+            gsap.fromTo(messageArea,
+                { autoAlpha: 0, y: 20 },
+                { autoAlpha: 1, y: 0, duration: 0.3 }
+            );
+            gsap.to(messageArea, { autoAlpha: 0, y: 20, duration: 0.3, delay: 5 });
+        }
+
+        function shakeElement(el) {
+            gsap.fromTo(el,
+                { marginLeft: -8 },
+                { marginLeft: 8, duration: 0.08, yoyo: true, repeat: 5, ease: "power1.inOut", onComplete: () => gsap.set(el, { marginLeft: 0 }) }
+            );
+        }
+
+        function validateInput(val) {
+            if (isSolved) return;
+            let cleanVal = val.replace('#', '').trim().toUpperCase();
+            if (cleanVal === '9B59B6') { triggerSuccess(); return; }
+
+            let errorMsg, errorClass;
+            if (val.includes(',') || val.includes(' ')) {
+                errorMsg = "SYNTAX ERROR: Ungültige Trennzeichen.<br><small>Eingabeformat entspricht nicht dem Protokoll.</small>";
+                errorClass = "msg-error-dec";
+            } else if (/^[01]+$/.test(cleanVal) && cleanVal.length > 8) {
+                errorMsg = "SYSTEMFEHLER: Buffer Overflow!<br><small>Datenstrom überschreitet Speicherlimit.</small>";
+                errorClass = "msg-error-dec";
+            } else if (/^[01]+$/.test(cleanVal)) {
+                errorMsg = "WARNUNG: Rohdaten erkannt.<br><small>Bitte Datenkompression anwenden (Basis erhöhen).</small>";
+                errorClass = "msg-error-bin";
+            } else if (!/^[0-9A-F]+$/.test(cleanVal)) {
+                errorMsg = "FATAL ERROR: Unbekannter Opcode.<br><small>Zeichen nicht im kompatiblen Zeichensatz.</small>";
+                errorClass = "msg-error-dec";
+            } else if (cleanVal.length !== 6) {
+                errorMsg = "SPEICHERFEHLER: Alignment ungültig.<br><small>Erforderliche Wortbreite: 6 Zeichen.</small>";
+                errorClass = "msg-error-bin";
+            } else {
+                errorMsg = "VALIDIERUNGSFEHLER: Checksumme inkorrekt.<br><small>Eingabewert stimmt nicht mit Zielparametern überein.</small>";
+                errorClass = "msg-error-dec";
+            }
+
+            showMessage(errorMsg, errorClass);
+            shakeElement(messageArea);
+        }
+
+        function triggerSuccess() {
+            if (isSolved) return;
+            isSolved = true;
+
+            deactivateRealInput();
+            gsap.killTweensOf(messageArea);
+            gsap.set(messageArea, { autoAlpha: 0 });
+            gsap.to(controlsContainer, { scale: 0, duration: 0.3 });
+
+            // Success Style
+            fakeInput.style.backgroundColor = "#d4edda";
+            fakeInput.style.color = "#155724";
+            fakeInput.style.borderColor = "#28a745";
+            gsap.fromTo(fakeInput, { scale: 1 }, { scale: 1.2, duration: 0.1, yoyo: true, repeat: 1 });
+
+            // 1. ANTICIPATION: Aufladen!
+            // Schnelle Rotation, leichtes Wackeln, Scale Up
+            gsap.killTweensOf(currentRot);
+            gsap.to(currentRot, {
+                y: currentRot.y + 720, // 2 volle Umdrehungen
+                x: 0,
+                duration: 1.2,
+                ease: "expo.in",
+                onUpdate: () => {
+                    displayRot.x = currentRot.x;
+                    displayRot.y = currentRot.y;
+                    updateOctahedron();
+                }
+            });
+
+            gsap.to("#octahedron-wrapper", {
+                scale: 1.2, // "Einatmen"
+                y: 50,      // Leicht nach unten ausholen
+                duration: 1.0,
+                ease: "power2.in"
+            });
+
+            // 2. THE DROP (nach 1.0s)
+            setTimeout(() => {
+                // Flash Overlay
+                const flash = document.getElementById('flash-overlay');
+                gsap.to(flash, {
+                    opacity: 1, duration: 0.05, onComplete: () => {
+                        gsap.to(flash, { opacity: 0, duration: 1.5, ease: "power2.out" });
+                    }
+                });
+
+                // Screen Shake
+                document.body.classList.add('camera-shake');
+                setTimeout(() => document.body.classList.remove('camera-shake'), 600);
+
+                // Szene aktivieren
+                document.getElementById('success-scene').classList.add('active');
+                document.body.classList.add('zoomed-out');
+
+                // Oktaeder fliegt extrem schnell nach oben weg
+                gsap.to("#octahedron-wrapper", {
+                    scale: 0.1,       // Wird winzig
+                    y: -800,          // Fliegt massiv nach oben
+                    rotation: 180,    // Zusätzlicher Spin
+                    duration: 0.6,
+                    ease: "power4.in",
+                    onComplete: () => {
+                        octahedron.classList.add('solved'); // Faces ausblenden
+
+                        // EXPLOSION: Partikelregen
+                        const colors = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6'];
+                        const fragment = document.createDocumentFragment();
+                        for (let i = 0; i < 80; i++) {
+                            const star = document.createElement('div');
+                            star.className = 'explode-star';
+                            // Zufällige Form: Kreis oder Stern
+                            const isCircle = Math.random() > 0.5;
+                            const color = colors[Math.floor(Math.random() * colors.length)];
+
+                            if (isCircle) {
+                                star.style.borderRadius = '50%';
+                                star.style.backgroundColor = color;
+                                star.style.width = '12px'; star.style.height = '12px';
+                            } else {
+                                star.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z" fill="${color}" /></svg>`;
+                            }
+
+                            star.style.position = 'fixed'; // Fixed, damit sie nicht mit dem Wrapper wegfliegen
+                            star.style.left = '50%';
+                            star.style.top = '50%';
+                            star.style.zIndex = 999;
+
+                            fragment.appendChild(star);
+
+                            // Explosions-Physik
+                            const angle = Math.random() * Math.PI * 2;
+                            const velocity = 100 + Math.random() * 400; // Radius
+                            const tx = Math.cos(angle) * velocity;
+                            const ty = Math.sin(angle) * velocity;
+
+                            gsap.to(star, {
+                                x: tx,
+                                y: ty,
+                                rotation: Math.random() * 720,
+                                scale: Math.random() * 2 + 0.5,
+                                opacity: 0,
+                                duration: 1.5 + Math.random(),
+                                ease: "power3.out",
+                                onComplete: () => star.remove()
+                            });
+                        }
+                        document.body.appendChild(fragment);
+                    }
+                });
+
+            }, 1000); // Timing matcht die "Einatmen"-Phase
+        }
+
+        // Initialer Aufruf
+        updateOctahedron();
+    </script>
+</body>
+
+</html>
