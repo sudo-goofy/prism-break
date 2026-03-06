@@ -295,7 +295,6 @@
             background: #fff;
             color: var(--ink-color);
             box-shadow: 6px 6px 0px var(--ink-color);
-            box-sizing: border-box;
             cursor: pointer;
             transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), background 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), color 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             text-transform: uppercase;
@@ -310,7 +309,6 @@
             border-color: var(--ink-color);
         }
 
-        /* Active state */
         .fake-input:active {
             transform: translate(6px, 6px);
             box-shadow: 0px 0px 0px var(--ink-color);
@@ -389,11 +387,23 @@
             justify-content: center;
             align-items: center;
             color: var(--ink-color);
+            position: relative;
         }
 
         .control-btn:active {
             transform: translate(4px, 4px);
             box-shadow: 0px 0px 0px var(--ink-color);
+        }
+
+        .control-btn-wide {
+            width: auto;
+            border-radius: 32px;
+            padding: 0 20px;
+            gap: 8px;
+            font-size: 15px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 900;
+            letter-spacing: 0.5px;
         }
 
         #message-area {
@@ -526,15 +536,12 @@
             margin: 0;
             font-family: 'Rubik Puddles', cursive;
             font-size: 140px;
-            background: none;
             color: #ffffff;
             -webkit-text-stroke: 3px #ffffff;
             text-shadow: 0 0 20px rgba(0, 47, 167, 1), 0 0 60px rgba(0, 47, 167, 0.8);
             opacity: 0;
             visibility: hidden;
             transform: translate(-50%, 0) scale(0) rotate(-10deg);
-            transition: none;
-
             line-height: 1;
             letter-spacing: 5px;
             text-align: center;
@@ -587,15 +594,6 @@
 
             100% {
                 transform: translate(-50%, -50%) scale(1);
-            }
-        }
-
-        @keyframes float-cloud {
-            0% {
-                transform: translate(-50%, 0px) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -20px) scale(1.05);
             }
         }
 
@@ -660,6 +658,83 @@
             background-size: 10px 10px;
         }
 
+        /* ——— INTRO OVERLAY ——— */
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(26, 26, 26, 0.85);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            will-change: opacity;
+        }
+
+        #intro-overlay .intro-title {
+            font-family: 'Rubik Puddles', cursive;
+            font-size: 52px;
+            color: #fff;
+            text-align: center;
+            line-height: 1.1;
+            letter-spacing: 2px;
+        }
+
+        #intro-overlay .intro-subtitle {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            max-width: 320px;
+            line-height: 1.5;
+        }
+
+        #intro-overlay .intro-cta {
+            margin-top: 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: intro-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes intro-pulse {
+            0%, 100% { opacity: 0.35; }
+            50% { opacity: 0.8; }
+        }
+
+        /* ——— HINT BAR ——— */
+        #hint-bar {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: rgba(26, 26, 26, 0.45);
+            letter-spacing: 0.5px;
+            text-align: center;
+            z-index: 90;
+            pointer-events: none;
+            white-space: nowrap;
+            will-change: opacity;
+        }
+
+        #hint-bar .hint-icon {
+            display: inline-block;
+            margin-right: 6px;
+            font-size: 13px;
+            vertical-align: middle;
+            opacity: 0.7;
+        }
+
         @media (max-width: 800px) {
             .yay-text {
                 font-size: 90px;
@@ -668,18 +743,37 @@
             .crowd-img {
                 margin-bottom: 0;
             }
+
+            #intro-overlay .intro-title {
+                font-size: 36px;
+            }
+
+            #intro-overlay .intro-subtitle {
+                font-size: 15px;
+                max-width: 260px;
+            }
         }
     </style>
 </head>
 
 <body>
 
+    <!-- Intro Overlay -->
+    <div id="intro-overlay">
+        <div class="intro-title">Knacke den<br>Code</div>
+        <div class="intro-subtitle">Drehe das Objekt, sammle die RGB-Hinweise und finde den gesuchten Code.</div>
+        <div class="intro-cta">Tippen zum Starten</div>
+    </div>
+
     <div id="particles"></div>
     <div id="flash-overlay"></div>
     <div id="message-area"></div>
 
+    <!-- Hint Bar -->
+    <div id="hint-bar" style="opacity: 0"><span class="hint-icon">↻</span> Drehe das Objekt — entdecke die Hinweise</div>
+
     <div id="controls">
-        <button id="focus-input-btn" class="control-btn" aria-label="Eingabe fokussieren">✎</button>
+        <button id="focus-input-btn" class="control-btn control-btn-wide" aria-label="Code eingeben"><span style="font-size:28px">✎</span> Code Eingabe</button>
         <button id="toggle-rotation-btn" class="control-btn" aria-label="Rotation umschalten">⏸</button>
     </div>
 
@@ -938,7 +1032,7 @@
             inputValue = realInput.value.replace(/^#/, '').toUpperCase().substring(0, 6);
             realInput.value = inputValue;
             renderFakeInput();
-            if (inputValue === '002FA7' || inputValue === '......') triggerSuccess();
+            if (inputValue === '002FA7' || inputValue === '121212') triggerSuccess();
         });
 
         realInput.addEventListener('keyup', (e) => {
@@ -1075,6 +1169,7 @@
 
                 const face = pointerDownTarget && pointerDownTarget.closest('.face');
                 if (face) {
+                    trackFaceView(face);
                     const targetX = parseFloat(face.dataset.rx);
                     const targetY = parseFloat(face.dataset.ry);
                     const isHexFace = face.classList.contains('f8');
@@ -1127,8 +1222,6 @@
         function validateInput(val) {
             if (isSolved) return;
             let cleanVal = val.replace('#', '').trim().toUpperCase();
-            if (cleanVal === '9B59B6') { triggerSuccess(); return; }
-
             let errorMsg, errorClass;
             if (val.includes(',') || val.includes(' ')) {
                 errorMsg = "SYNTAX ERROR: Ungültige Trennzeichen.<br><small>Eingabeformat entspricht nicht dem Protokoll.</small>";
@@ -1232,6 +1325,9 @@
 
             deactivateRealInput();
             gsap.killTweensOf(messageArea);
+
+            // Hint-Bar ausblenden
+            gsap.to('#hint-bar', { opacity: 0, duration: 0.3 });
 
             // Akt 1: TENSION — Welt dimmt, Spannung baut auf
             gsap.to('#particles', { opacity: 0.2, duration: 1.5, ease: 'power1.in' });
@@ -1355,6 +1451,62 @@
 
         // Initialer Aufruf
         updateOctahedron();
+
+        // --- INTRO OVERLAY ---
+        const introOverlay = document.getElementById('intro-overlay');
+        const hintBar = document.getElementById('hint-bar');
+        let introDismissed = false;
+
+        // Intro-Elemente animieren
+        gsap.from('#intro-overlay .intro-title', { y: 30, opacity: 0, duration: 0.8, delay: 0.2, ease: 'power2.out' });
+        gsap.from('#intro-overlay .intro-subtitle', { y: 20, opacity: 0, duration: 0.8, delay: 0.5, ease: 'power2.out' });
+        gsap.from('#intro-overlay .intro-cta', { opacity: 0, duration: 0.6, delay: 0.9 });
+
+        function dismissIntro() {
+            if (introDismissed) return;
+            introDismissed = true;
+            gsap.to(introOverlay, {
+                opacity: 0, duration: 0.6, ease: 'power2.inOut',
+                onComplete: () => introOverlay.remove()
+            });
+            gsap.fromTo(hintBar, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, delay: 0.4 });
+        }
+
+        introOverlay.addEventListener('pointerdown', dismissIntro);
+        // Auch bei Tastendruck
+        document.addEventListener('keydown', function onKey(e) {
+            dismissIntro();
+            document.removeEventListener('keydown', onKey);
+        });
+
+        // --- HINT BAR UPDATES ---
+        let facesViewed = new Set();
+        let hintPhase = 0; // 0=drehen, 1=hinweise gefunden, 2=code eingeben
+
+        function updateHintBar(text) {
+            gsap.to(hintBar, { opacity: 0, duration: 0.2, onComplete: () => {
+                hintBar.innerHTML = text;
+                gsap.to(hintBar, { opacity: 1, duration: 0.3 });
+            }});
+        }
+
+        function trackFaceView(face) {
+            if (isSolved || !face) return;
+            const cls = face.className;
+            if (cls.includes('f1') || cls.includes('f5')) facesViewed.add('R');
+            if (cls.includes('f2') || cls.includes('f6')) facesViewed.add('G');
+            if (cls.includes('f3') || cls.includes('f7')) facesViewed.add('B');
+            if (cls.includes('f8')) facesViewed.add('HEX');
+
+            if (hintPhase === 0 && facesViewed.size >= 2) {
+                hintPhase = 1;
+                updateHintBar('<span class="hint-icon">🔍</span> R, G, B — sammle alle Werte und berechne den Hex-Code');
+            }
+            if (hintPhase === 1 && facesViewed.has('HEX')) {
+                hintPhase = 2;
+                updateHintBar('<span class="hint-icon">✎</span> Tippe den 6-stelligen Hex-Code ein — oder drücke <b>Code</b>');
+            }
+        }
     </script>
 </body>
 

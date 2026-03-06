@@ -17,4 +17,3 @@ Schülerinnen und Schüler erkunden die Verbindung zwischen RGB-Farbwerten und i
 ## Live
 
 **[sudo-goofy.github.io/prism-break](https://sudo-goofy.github.io/prism-break/)**
-
