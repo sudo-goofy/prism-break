@@ -460,6 +460,22 @@
             color: var(--ink-color) !important;
         }
 
+        .msg-verifying {
+            background-color: var(--ink-color) !important;
+            color: #0f0 !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 16px !important;
+            letter-spacing: 2px;
+        }
+
+        .msg-verified {
+            background-color: #28a745 !important;
+            color: #fff !important;
+            font-family: 'Space Mono', monospace !important;
+            font-size: 18px !important;
+            letter-spacing: 2px;
+        }
+
         .explode-star {
             position: absolute;
             top: 50%;
@@ -477,7 +493,7 @@
             width: 100vw;
             height: 100vh;
             pointer-events: none;
-            overflow: hidden;
+            /* overflow:hidden entfernt — body clippt, aurora-halo braucht freies Blur-Bleeding */
             z-index: 10;
         }
 
@@ -599,48 +615,33 @@
             will-change: transform, opacity;
         }
 
-        /* AURORA BOREALIS HALO - Angepasst auf Yves Blau Sonne */
-        .yay-text::after {
-            content: "";
+        /* AURORA HALO — eigenes div statt ::after, verhindert GPU-Clip-Artefakt (weißes Rechteck) */
+        #aurora-halo {
             position: absolute;
-            top: 50%;
+            top: 20vh;
             left: 50%;
-            /* Begrenzte Größe für den "Zwei Drittel"-Effekt */
-            width: 150vh;
-            height: 150vh;
-            z-index: -1;
-
-            /* Intensiver Yves Blau Gradient, der nach außen transparent wird */
+            width: 160vh;
+            height: 160vh;
+            transform: translate(-50%, -50%) scale(0.05);
             background: radial-gradient(circle at 50% 50%,
-                    rgba(0, 47, 167, 0.95) 0%,
-                    rgba(0, 47, 167, 0.6) 30%,
-                    rgba(0, 47, 167, 0.2) 50%,
-                    rgba(0, 47, 167, 0) 70%);
-
+                rgba(0, 47, 167, 0.9) 0%,
+                rgba(0, 47, 167, 0.55) 28%,
+                rgba(0, 47, 167, 0.15) 55%,
+                rgba(0, 47, 167, 0) 72%);
             border-radius: 50%;
-            filter: blur(80px);
-            /* Stärkerer Blur für weiches Licht */
+            filter: blur(70px);
             opacity: 0;
             pointer-events: none;
             will-change: transform, opacity;
-
-            /* Start-Zustand: Klein */
-            transform: translate(-50%, -50%) scale(0.1);
-
-            transition: transform 3s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 2s ease-in-out;
-            transition-delay: 1.6s;
+            z-index: 3;
+            transition: transform 3.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 2.5s ease-in-out;
+            transition-delay: 1.4s;
         }
 
-        /* Halo smooth einblenden und vergrößern wenn aktiv */
-        #success-scene.active .yay-text::after {
+        #aurora-halo.active {
             opacity: 1;
-            /* End-Zustand: Riesig */
             transform: translate(-50%, -50%) scale(1);
-
-            /* Nachdem es sich ausgebreitet hat, soll es pulsieren. 
-               Wir nutzen hier animation-delay, damit das Pulsieren erst nach dem Ausbreiten startet */
-            animation: aurora-pulse 6s ease-in-out infinite alternate 4.6s;
-            /* 1.6s delay + 3s transition */
+            animation: aurora-pulse 6s ease-in-out infinite alternate 5s;
         }
 
         /* TEXT EINBLENDEN */
@@ -856,6 +857,8 @@
     <div id="success-scene">
         <!-- Der Lichtkegel -->
         <div class="light-beam"></div>
+        <!-- Aurora Halo: eigenes Element statt ::after — kein weißer Clip-Rahmen -->
+        <div id="aurora-halo"></div>
         <!-- Der Papier-Boden für die Zeichnung (blendet das Raster aus) -->
         <div class="ground-glow"></div>
         <div class="yay-text">Yay :)</div>
@@ -880,6 +883,7 @@
         let displayRot = { x: 15, y: 45 };
         let isAutoRotate = true;
         let isSolved = false;
+        let isSuccessPlaying = false; // Lerp während Success pausieren — GSAP-Easing direkt sichtbar
         let isDragging = false;
         let dragMoved = false;
         let startX, startY;
@@ -935,9 +939,14 @@
                 if (Math.abs(velocity.y) < VELOCITY_MIN) velocity.y = 0;
             }
 
-            // Smooth Interpolation: displayRot gleitet zu currentRot
-            displayRot.x = lerp(displayRot.x, currentRot.x, LERP_FACTOR);
-            displayRot.y = lerp(displayRot.y, currentRot.y, LERP_FACTOR);
+            // Smooth Interpolation: bei Success direkt (kein Lerp), sonst weich
+            if (isSuccessPlaying) {
+                displayRot.x = currentRot.x;
+                displayRot.y = currentRot.y;
+            } else {
+                displayRot.x = lerp(displayRot.x, currentRot.x, LERP_FACTOR);
+                displayRot.y = lerp(displayRot.y, currentRot.y, LERP_FACTOR);
+            }
             updateOctahedron();
 
             // Nur repositionieren solange die Tastatur noch NICHT offen ist
@@ -1229,151 +1238,141 @@
             }
         }
 
+        function spawnExplosionParticles() {
+            const colors = [
+                '#ff0000', '#ff3333',
+                '#00aa44', '#00ff66',
+                '#002FA7', '#3366ff', '#6699ff',
+                '#f1c40f', '#ffffff'
+            ];
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < 90; i++) {
+                const star = document.createElement('div');
+                star.className = 'explode-star';
+                const colorIndex = Math.random() < 0.45
+                    ? 4 + Math.floor(Math.random() * 3)
+                    : Math.floor(Math.random() * colors.length);
+                const color = colors[colorIndex];
+                const isCircle = Math.random() > 0.4;
+                if (isCircle) {
+                    star.style.borderRadius = '50%';
+                    star.style.backgroundColor = color;
+                    const sz = (8 + Math.random() * 10) + 'px';
+                    star.style.width = sz;
+                    star.style.height = sz;
+                } else {
+                    star.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z" fill="${color}" /></svg>`;
+                }
+                star.style.position = 'fixed';
+                star.style.left = '50%';
+                star.style.top = '50%';
+                star.style.zIndex = '999';
+                fragment.appendChild(star);
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 120 + Math.random() * 380;
+                gsap.to(star, {
+                    x: Math.cos(angle) * speed,
+                    y: Math.sin(angle) * speed - Math.random() * 180,
+                    rotation: Math.random() * 900,
+                    scale: Math.random() * 2.5 + 0.3,
+                    opacity: 0,
+                    duration: 1.2 + Math.random() * 1.2,
+                    ease: 'power3.out',
+                    onComplete: () => star.remove()
+                });
+            }
+            document.body.appendChild(fragment);
+        }
+
         function triggerSuccess() {
             if (isSolved) return;
             isSolved = true;
+            velocity.x = 0;
+            velocity.y = 0;
 
             deactivateRealInput();
             gsap.killTweensOf(messageArea);
-            gsap.set(messageArea, { autoAlpha: 0 });
-            gsap.to(controlsContainer, { scale: 0, duration: 0.3 });
 
-            // SOFORT: Pulsring-Feedback und Input-Highlight
+            // Phase 0: VERIFICATION — Eingabe wird animiert geprüft
+            messageArea.className = 'msg-verifying';
+            messageArea.innerHTML = '▶ PRÜFE EINGABE<span class="dots">...</span>';
+            gsap.set(messageArea, { autoAlpha: 1, y: 0 });
+
+            // Dot-Animation im Text
+            let dotCount = 0;
+            const dotsEl = messageArea.querySelector('.dots');
+            const dotInterval = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                if (dotsEl) dotsEl.textContent = '.'.repeat(dotCount || 1);
+            }, 200);
+
+            // Nach 1.6s: Verifiziert!
+            setTimeout(() => {
+                clearInterval(dotInterval);
+                messageArea.className = 'msg-verified';
+                messageArea.innerHTML = '✓ VERIFIZIERT — CODE KORREKT';
+                gsap.fromTo(messageArea, { scale: 0.9 }, { scale: 1.05, duration: 0.15, yoyo: true, repeat: 1 });
+
+                // Nach 0.8s: Message weg, Implosion starten
+                setTimeout(() => {
+                    gsap.to(messageArea, { autoAlpha: 0, y: 20, duration: 0.3 });
+                    gsap.to(controlsContainer, { scale: 0, duration: 0.3 });
+                    startImplosionSequence();
+                }, 1200);
+            }, 1600);
+        }
+
+        function startImplosionSequence() {
+            isSuccessPlaying = true;
+
+            // Sofortiges visuelles Feedback am Input
             fakeInput.style.backgroundColor = '#d4edda';
             fakeInput.style.color = '#155724';
             fakeInput.style.borderColor = '#28a745';
             gsap.fromTo(fakeInput, { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 });
             spawnPulseRing();
 
-            // 1. ANTICIPATION: Aufladen — Oktaeder dreht sich und sammelt Energie
+            // Alle laufenden Tweens auf Oktaeder stoppen
+            gsap.killTweensOf('#octahedron-wrapper');
             gsap.killTweensOf(currentRot);
-            gsap.to(currentRot, {
-                y: currentRot.y + 540,
-                x: 0,
-                duration: 1.0,
-                ease: 'power2.in',
-                onUpdate: () => {
-                    displayRot.x = currentRot.x;
-                    displayRot.y = currentRot.y;
-                    updateOctahedron();
-                }
-            });
-            gsap.to('#octahedron-wrapper', {
-                scale: 1.25,
-                y: 30,
-                duration: 0.85,
-                ease: 'power2.in'
-            });
 
-            // 2. HELD BREATH: kurzes Einfrieren (cinematischer Beat)
-            setTimeout(() => {
-                gsap.to(currentRot, { y: currentRot.y, duration: 0.35, ease: 'none',
-                    onUpdate: () => {
-                        displayRot.x = currentRot.x;
-                        displayRot.y = currentRot.y;
-                        updateOctahedron();
-                    }
-                });
-                gsap.to('#octahedron-wrapper', { scale: 1.3, y: 20, duration: 0.35, ease: 'power1.out' });
-            }, 850);
+            const flash = document.getElementById('flash-overlay');
 
-            // 3. THE DROP
-            setTimeout(() => {
-                // Yves Klein Blau Flash — thematisch statt generisch weiß
-                const flash = document.getElementById('flash-overlay');
+            // Einzige Timeline — kein setTimeout-Drift
+            const tl = gsap.timeline();
+
+            // Phase 1: CHARGE — Energie aufladen (0 → 0.85s)
+            tl.to(currentRot, { y: '+=360', x: 0, duration: 0.85, ease: 'power2.in' })
+              .to('#octahedron-wrapper', { scale: 1.3, y: 0, duration: 0.85, ease: 'power2.inOut' }, '<');
+
+            // Phase 2: HELD BREATH — cinematischer Beat (0.85 → 1.1s)
+            tl.to('#octahedron-wrapper', { scale: 1.18, duration: 0.25, ease: 'power2.out' });
+
+            // Phase 3: IMPLOSION — kollabiert nach innen (1.1 → 1.45s)
+            tl.to(currentRot, { y: '+=1080', duration: 0.35, ease: 'power4.in' })
+              .to('#octahedron-wrapper', { scale: 0, duration: 0.32, ease: 'expo.in' }, '<');
+
+            // Phase 4: THE DROP — nach Implosion bricht alles auf
+            tl.add(() => {
+                octahedron.classList.add('solved');
+
+                // Yves Klein Blau Flash
                 gsap.fromTo(flash,
                     { opacity: 0 },
-                    { opacity: 0.9, duration: 0.07,
-                        onComplete: () => gsap.to(flash, { opacity: 0, duration: 1.8, ease: 'power2.out' })
+                    { opacity: 0.85, duration: 0.06,
+                      onComplete: () => gsap.to(flash, { opacity: 0, duration: 2.0, ease: 'power2.out' })
                     }
                 );
 
-                // Screen Shake
                 document.body.classList.add('camera-shake');
                 setTimeout(() => document.body.classList.remove('camera-shake'), 500);
 
-                // Hintergrund-Zoom
                 document.body.classList.add('zoomed-out');
+                document.getElementById('success-scene').classList.add('active');
+                document.getElementById('aurora-halo').classList.add('active');
 
-                // Oktaeder: kurzer Scale-Pop, dann blitzschnell nach oben
-                gsap.to('#octahedron-wrapper', {
-                    scale: 1.5,
-                    duration: 0.08,
-                    ease: 'power4.out',
-                    onComplete: () => {
-                        // Licht-Trail: Oktaeder lässt einen Schimmer zurück
-                        gsap.to('#octahedron-wrapper', {
-                            scale: 0.05,
-                            y: -900,
-                            rotation: 720,
-                            filter: 'blur(8px) brightness(3)',
-                            duration: 0.55,
-                            ease: 'power4.in',
-                            onComplete: () => {
-                                octahedron.classList.add('solved');
-                                gsap.set('#octahedron-wrapper', { visibility: 'hidden' });
-
-                                // Szene aktivieren (erst hier, damit Flash zuerst wahrgenommen wird)
-                                document.getElementById('success-scene').classList.add('active');
-
-                                // EXPLOSION: Partikel in RGB-Rätsel-Farben + Gold
-                                // Stimmig: die drei Farbkanäle des Rätsels plus Gold als Highlight
-                                const colors = [
-                                    '#ff0000', '#ff3333', // Rot-Kanal
-                                    '#00aa44', '#00ff66', // Grün-Kanal
-                                    '#002FA7', '#3366ff', '#6699ff', // Blau-Kanal (dominant = Yves Klein)
-                                    '#f1c40f', '#fff' // Gold + Weiß als Akzent
-                                ];
-                                const fragment = document.createDocumentFragment();
-                                for (let i = 0; i < 90; i++) {
-                                    const star = document.createElement('div');
-                                    star.className = 'explode-star';
-                                    // Blaue Partikel häufiger (thematisch dominant)
-                                    const colorIndex = Math.random() < 0.45
-                                        ? 4 + Math.floor(Math.random() * 3)  // Blau-Töne
-                                        : Math.floor(Math.random() * colors.length);
-                                    const color = colors[colorIndex];
-                                    const isCircle = Math.random() > 0.4;
-
-                                    if (isCircle) {
-                                        star.style.borderRadius = '50%';
-                                        star.style.backgroundColor = color;
-                                        const sz = (8 + Math.random() * 10) + 'px';
-                                        star.style.width = sz; star.style.height = sz;
-                                    } else {
-                                        star.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z" fill="${color}" /></svg>`;
-                                    }
-
-                                    star.style.position = 'fixed';
-                                    star.style.left = '50%';
-                                    star.style.top = '40%'; // Leicht über Mitte — wirkt natürlicher
-                                    star.style.zIndex = 999;
-                                    fragment.appendChild(star);
-
-                                    const angle = Math.random() * Math.PI * 2;
-                                    // Mehr Partikel nach oben (Richtung Yay-Text)
-                                    const upBias = Math.random() < 0.5 ? -1 : 0;
-                                    const speed = 120 + Math.random() * 380;
-                                    const tx = Math.cos(angle) * speed;
-                                    const ty = Math.sin(angle) * speed + upBias * 200;
-
-                                    gsap.to(star, {
-                                        x: tx, y: ty,
-                                        rotation: Math.random() * 900,
-                                        scale: Math.random() * 2.5 + 0.3,
-                                        opacity: 0,
-                                        duration: 1.2 + Math.random() * 1.2,
-                                        ease: 'power3.out',
-                                        onComplete: () => star.remove()
-                                    });
-                                }
-                                document.body.appendChild(fragment);
-                            }
-                        });
-                    }
-                });
-
-            }, 1250); // 850ms anticipation + 350ms held breath + 50ms puffer
+                spawnExplosionParticles();
+            });
         }
 
         // Initialer Aufruf
