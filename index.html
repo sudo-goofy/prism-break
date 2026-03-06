@@ -5,33 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Magisches Oktaeder-Rätsel</title>
-    <!-- Matt Blease inspiriert: Kräftige, klare Fonts + Rubik Puddles für die Wolke -->
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;900&family=Rubik+Puddles&family=Space+Mono:wght@700&display=swap"
         rel="stylesheet">
-    <!-- GSAP Bibliothek für butterweiche, bugfreie Animationen -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <style>
         :root {
             --bg-color: #f4f4f0;
-            /* Hell: Warmes Matt Blease Off-White */
             --ink-color: #1a1a1a;
-            /* Hell: Dickes Schwarz für die Linien */
             --paper-color: #f4f4f0;
             --size: 360px;
             --height: 311.769px;
-            /* 360 * sqrt(3)/2 */
             --tz: 180px;
             --rx-top: 35.264deg;
             --rx-bot: -35.264deg;
-
-            /* Rätsel-Farben (Ziel Hex: #002FA7) */
             --color-r: rgb(255, 0, 0);
             --color-g: rgb(0, 255, 0);
             --color-b: rgb(0, 0, 255);
             --color-hint: #ffffff;
-            --light-glow: rgba(0, 47, 167, 0.5);
-            /* Das magische Yves als Licht */
         }
 
         * {
@@ -39,11 +30,14 @@
             user-select: none;
         }
 
+        html {
+            overflow: hidden;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
             touch-action: none;
-            /* Verhindert iOS Pull-to-Refresh & Scroll-Bugs */
             background-color: var(--bg-color);
             background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1px);
             background-size: 30px 30px;
@@ -54,10 +48,8 @@
             height: 100vh;
             color: var(--ink-color);
             transition: background-size 2s cubic-bezier(0.2, 0.8, 0.2, 1);
-            /* Für den Raus-Zoom-Effekt */
         }
 
-        /* Magische Sterne im Hintergrund */
         .star {
             position: absolute;
             color: #f1c40f;
@@ -101,7 +93,6 @@
             will-change: transform;
         }
 
-        /* Der Oktaeder für die Rotation */
         #octahedron {
             position: relative;
             transform-style: preserve-3d;
@@ -255,46 +246,6 @@
             transform: rotateY(270deg) translateZ(var(--tz)) rotateX(var(--rx-bot));
         }
 
-        #octahedron.solved .f1 {
-            transform: rotateY(0deg) translateZ(1000px) rotateX(var(--rx-top));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f2 {
-            transform: rotateY(90deg) translateZ(1000px) rotateX(var(--rx-top));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f3 {
-            transform: rotateY(180deg) translateZ(1000px) rotateX(var(--rx-top));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f4 {
-            transform: rotateY(270deg) translateZ(1000px) rotateX(var(--rx-top));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f5 {
-            transform: rotateY(0deg) translateZ(1000px) rotateX(var(--rx-bot));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f6 {
-            transform: rotateY(90deg) translateZ(1000px) rotateX(var(--rx-bot));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f7 {
-            transform: rotateY(180deg) translateZ(1000px) rotateX(var(--rx-bot));
-            opacity: 0;
-        }
-
-        #octahedron.solved .f8 {
-            transform: rotateY(270deg) translateZ(1000px) rotateX(var(--rx-bot));
-            opacity: 0;
-        }
-
         .input-wrapper {
             position: relative;
             display: inline-block;
@@ -329,7 +280,7 @@
             overflow: visible;
         }
 
-        /* Matt Blease Style: Bold lines, high contrast, black & white */
+        /* Matt Blease Style */
         .fake-input {
             width: 140px;
             height: 56px;
@@ -343,7 +294,6 @@
             border-radius: 8px;
             background: #fff;
             color: var(--ink-color);
-            /* Hard shadow, no blur */
             box-shadow: 6px 6px 0px var(--ink-color);
             box-sizing: border-box;
             cursor: pointer;
@@ -360,37 +310,61 @@
             border-color: var(--ink-color);
         }
 
-        /* Active state for click feeling */
+        /* Active state */
         .fake-input:active {
             transform: translate(6px, 6px);
             box-shadow: 0px 0px 0px var(--ink-color);
         }
 
+        .fake-input.placeholder {
+            color: #999;
+        }
+
+        .fake-input.focused {
+            background: #fffef0;
+            border-color: #f1c40f;
+            box-shadow: 6px 6px 0px #d4a90a;
+            color: #000;
+        }
+
+        .fake-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background: #d4a90a;
+            vertical-align: middle;
+            margin: 0 -1px;
+            animation: cursor-blink 1s step-end infinite;
+        }
+
+        @keyframes cursor-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
         #real-hex-input {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 140px;
-            height: 56px;
-            font-family: 'Space Mono', monospace;
-            font-weight: bold;
-            font-size: 20px;
-            text-align: center;
-            border: 4px solid var(--ink-color);
-            border-radius: 8px;
-            background: #fff;
-            color: var(--ink-color);
-            box-shadow: 6px 6px 0px var(--ink-color);
-            z-index: 1000;
-            outline: none;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 50px;
+            font-size: 24px;
             text-transform: uppercase;
-            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
             opacity: 0;
             pointer-events: none;
+            z-index: 1000;
+            outline: none;
+            border: none;
+            background: transparent;
+            color: transparent;
+            caret-color: transparent;
         }
 
         #real-hex-input:focus {
-            background: #e8f0fe;
+            background: transparent;
         }
 
         #controls {
@@ -493,18 +467,15 @@
             width: 100vw;
             height: 100vh;
             pointer-events: none;
-            /* overflow:hidden entfernt — body clippt, aurora-halo braucht freies Blur-Bleeding */
             z-index: 10;
         }
 
-        /* Der Lichtkegel (passt sich jetzt schön in den weißen Hintergrund ein) */
         .light-beam {
             position: absolute;
             top: 0;
             left: 0;
             width: 100vw;
-            height: 70vh; /* Begrenzung auf den oberen Bereich */
-            /* Startet bei 15vh (Text Position) und strahlt nach unten */
+            height: 70vh;
             background: radial-gradient(ellipse at 50% 15vh, rgba(0, 47, 167, 0.8) 0%, rgba(0, 47, 167, 0.4) 40%, rgba(0, 47, 167, 0) 80%);
             opacity: 0;
             transition: opacity 1.5s ease-in-out;
@@ -518,7 +489,7 @@
             opacity: 1;
         }
 
-        /* Der Papier-Boden, der das Punkteraster verdeckt */
+        /* Papier-Boden */
         .ground-glow {
             position: absolute;
             bottom: 0;
@@ -528,18 +499,18 @@
             background: linear-gradient(to bottom, rgba(244, 244, 240, 0) 0%, var(--paper-color) 40%, var(--paper-color) 100%);
             transform: translateY(100%);
             transition: transform 2.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-            /* Langsameres Sliden */
             transition-delay: 2.2s;
-            /* Wartet, bis das Yay erschienen ist */
             z-index: 1;
             will-change: transform;
+            visibility: hidden;
         }
 
         #success-scene.active .ground-glow {
             transform: translateY(0%);
+            visibility: visible;
         }
 
-        /* Das Bild liegt ÜBER dem Licht */
+        /* Crowd-Bild */
         .crowd-img {
             position: absolute;
             bottom: -18vh;
@@ -552,35 +523,22 @@
             transform-origin: bottom center;
             transform: translateY(100%) scale(1.1);
             transition: transform 6s cubic-bezier(0.1, 0.8, 0.2, 1);
-            /* Von 12s auf 6s — episch ohne ermüdend */
             transition-delay: 2.5s;
-            /* Leicht früher, fühlt sich reaktiver an */
-
-            /* WICHTIG: Da das Bild transparent ist, brauchen wir KEIN Multiply! */
-            /* mix-blend-mode: multiply;  <-- ENTFERNT */
-
-            /* EXTREMER GLOW: Wir stapeln mehrere Schatten für maximalen Backlight-Effekt */
             filter:
                 drop-shadow(0px -4px 2px rgba(255, 255, 255, 1.0))
-                /* Hartes, helles Licht an der Kante */
                 drop-shadow(0px -10px 10px rgba(200, 240, 255, 0.8))
-                /* Mittlerer Schein (leicht bläulich) */
                 drop-shadow(0px -30px 40px rgba(200, 240, 255, 0.5));
-            /* Großer diffuser Schein */
-
-            /* Optional: Helligkeit leicht anheben, damit sie nicht zu schwarz wirken */
-            /* brightness(1.2) */
-
-            opacity: 1.0;
             z-index: 5;
             will-change: transform;
+            visibility: hidden;
         }
 
         #success-scene.active .crowd-img {
             transform: translateY(0%) scale(1);
+            visibility: visible;
         }
 
-        /* Rubik Puddles Text (Weiß mit dicker schwarzer Umrandung) */
+        /* Yay-Text */
         .yay-text {
             position: absolute;
             top: 15vh;
@@ -588,22 +546,13 @@
             margin: 0;
             font-family: 'Rubik Puddles', cursive;
             font-size: 140px;
-
-            /* Basis-Text Style: Weiß mit weißer Umrandung (fetter) */
             background: none;
             color: #ffffff;
             -webkit-text-stroke: 3px #ffffff;
-            
-            /* Yves Klein Blau #002FA7 leuchten */
             filter: drop-shadow(0 0 20px rgba(0, 47, 167, 1)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8));
-
-            /* Sichtbarkeit */
             opacity: 0;
             visibility: hidden;
-            /* Fix: Verhindert kurzes Aufblitzen beim Laden */
             transform: translate(-50%, 0) scale(0) rotate(-10deg);
-
-            /* Transition */
             transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.8s;
             transition-delay: 1.4s;
 
@@ -615,7 +564,7 @@
             will-change: transform, opacity;
         }
 
-        /* AURORA HALO — eigenes div statt ::after, verhindert GPU-Clip-Artefakt (weißes Rechteck) */
+        /* Aurora Halo */
         #aurora-halo {
             position: absolute;
             top: 20vh;
@@ -631,7 +580,6 @@
             border-radius: 50%;
             filter: blur(70px);
             opacity: 0;
-            pointer-events: none;
             will-change: transform, opacity;
             z-index: 3;
             transition: transform 3.5s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 2.5s ease-in-out;
@@ -649,10 +597,7 @@
             visibility: visible;
             opacity: 1;
             transform: translate(-50%, 0) scale(1) rotate(0deg);
-
-            /* Kombinierter Filter: Nur noch Glow, kein schwarzer Schatten mehr */
             filter: drop-shadow(0 0 30px rgba(0, 47, 167, 1.0)) drop-shadow(0 0 60px rgba(0, 47, 167, 0.8));
-
             animation: float-cloud 4s ease-in-out infinite alternate 2.5s;
         }
 
@@ -670,42 +615,23 @@
             }
         }
 
-        @keyframes god-pulse {
-            0% {
-                filter:
-                    drop-shadow(0px 0px 5px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 30px rgba(255, 100, 255, 0.7)) drop-shadow(0px 0px 80px rgba(100, 200, 255, 0.5)) drop-shadow(6px 6px 0px var(--ink-color));
-            }
-
-            100% {
-                filter:
-                    drop-shadow(0px 0px 15px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 60px rgba(255, 0, 255, 0.9))
-                    /* Neon Magenta */
-                    drop-shadow(0px 0px 120px rgba(0, 200, 255, 0.8))
-                    /* Neon Cyan */
-                    drop-shadow(0px 0px 200px rgba(255, 255, 255, 0.6))
-                    /* Blendendes Weiß */
-                    drop-shadow(6px 6px 0px var(--ink-color));
-            }
-        }
-
         @keyframes float-cloud {
             0% {
                 transform: translate(-50%, 0px) scale(1);
             }
-
             100% {
                 transform: translate(-50%, -20px) scale(1.05);
             }
         }
 
-        /* EPIC FLASH & SHAKE */
+        /* Flash & Shake */
         #flash-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            /* Yves Klein Blau statt generischem Weiß */
+            /* Yves Klein Blau */
             background: radial-gradient(ellipse at 50% 50%, #4a6fd4 0%, #002FA7 60%, #001a5e 100%);
             opacity: 0;
             pointer-events: none;
@@ -713,7 +639,7 @@
             will-change: opacity;
         }
 
-        /* Pulsring: sofortiges visuelles Feedback bei richtiger Eingabe */
+        /* Pulsring: visuelles Feedback bei richtiger Eingabe */
         .pulse-ring {
             position: fixed;
             border-radius: 50%;
@@ -843,7 +769,7 @@
                                         </g>
                                     </svg>
                                 </div>
-                                <div id="fake-input" class="fake-input" style="color: #999;">#???</div>
+                                <div id="fake-input" class="fake-input placeholder">#???</div>
                             </div>
                         </div>
                     </div>
@@ -910,7 +836,8 @@
         const messageArea = document.getElementById('message-area');
 
         // Sanftes Schweben
-        gsap.to("#octahedron-wrapper", { y: -30, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1 });
+        let floatTween = gsap.to("#octahedron-wrapper", { y: -30, duration: 2, ease: "sine.inOut", yoyo: true, repeat: -1 });
+        let zoomTween = null;
 
         function lerp(a, b, t) {
             return a + (b - a) * t;
@@ -948,37 +875,27 @@
                 displayRot.y = lerp(displayRot.y, currentRot.y, LERP_FACTOR);
             }
             updateOctahedron();
-
-            // Nur repositionieren solange die Tastatur noch NICHT offen ist
-            if (isInputActive && !isSolved && document.activeElement !== realInput) {
-                positionRealInput();
-            }
         });
 
-        function positionRealInput() {
-            const rect = fakeInput.getBoundingClientRect();
-            // Direkt left/top setzen (kein GSAP-Transform) — robuster auf Mobile
-            realInput.style.left = rect.left + 'px';
-            realInput.style.top = rect.top + 'px';
-            realInput.style.width = rect.width + 'px';
-            realInput.style.height = rect.height + 'px';
-            realInput.style.transform = 'none';
-        }
+        let inputValue = ''; // Echte Quelle der Wahrheit für den Input-Wert
 
         function activateRealInput() {
             isInputActive = true;
+
+            // Float stoppen, subtiler Zoom
+            floatTween.pause();
+            if (zoomTween) zoomTween.kill();
+            zoomTween = gsap.to('#octahedron-wrapper', { scale: 1.1, duration: 0.5, ease: 'power2.out' });
+
             realInput.style.pointerEvents = 'auto';
-            positionRealInput();
-            realInput.value = fakeInput.innerText !== '#???' ? fakeInput.innerText : '';
-            // Kein focus() hier — erst nach der Snap-Animation (showRealInputVisually)
-            // Verhindert, dass die iPad-Tastatur während der Animation aufgeht und das Layout verschiebt
+            realInput.value = inputValue;
         }
 
         function showRealInputVisually() {
             if (isInputActive) {
-                positionRealInput(); // Finale Position nach abgeschlossener Animation
-                gsap.to(realInput, { opacity: 1, duration: 0.2 });
+                fakeInput.classList.add('focused');
                 realInput.focus();
+                renderFakeInput();
             }
         }
 
@@ -987,25 +904,73 @@
             isInputActive = false;
 
             realInput.style.pointerEvents = 'none';
-            gsap.to(realInput, { opacity: 0, duration: 0.2 });
             realInput.blur();
+            fakeInput.classList.remove('focused');
+            renderFakeInput(); // Cursor entfernen
 
-            if (realInput.value.trim() !== '' && !isSolved) {
-                validateInput(realInput.value);
+            if (!isSolved) {
+                if (zoomTween) zoomTween.kill();
+                zoomTween = gsap.to('#octahedron-wrapper', {
+                    scale: 1, duration: 0.5, ease: 'power2.out',
+                    onComplete: () => { if (!isSolved) floatTween.resume(); }
+                });
+            }
+
+            if (inputValue !== '' && !isSolved) {
+                validateInput(inputValue);
             }
         }
 
-        realInput.addEventListener('input', () => {
-            let val = realInput.value.toUpperCase();
-            if (val === '') {
-                fakeInput.innerText = '#???';
-                fakeInput.style.color = '#999';
+        function renderFakeInput() {
+            const hash = '<span style="color:#999">#</span>';
+            if (inputValue === '') {
+                fakeInput.classList.add('placeholder');
+                if (isInputActive) {
+                    fakeInput.innerHTML = hash + '<span class="fake-cursor"></span><span style="color:#999">??????</span>';
+                } else {
+                    fakeInput.innerHTML = '<span style="color:#999">#??????</span>';
+                }
             } else {
-                fakeInput.innerText = val;
-                fakeInput.style.color = 'var(--ink-color)';
+                fakeInput.classList.remove('placeholder');
+                if (isInputActive) {
+                    const pos = realInput.selectionStart ?? inputValue.length;
+                    const before = inputValue.substring(0, pos);
+                    const after = inputValue.substring(pos);
+                    fakeInput.innerHTML = hash + colorizeHex(before) + '<span class="fake-cursor"></span>' + colorizeHex(after, before.length);
+                } else {
+                    fakeInput.innerHTML = hash + colorizeHex(inputValue);
+                }
             }
-            if (val === '002FA7' || val === '#002FA7' || val === '######') triggerSuccess();
+        }
+
+        function colorizeHex(str, offset) {
+            offset = offset || 0;
+            const colors = ['#cc0000','#cc0000','#00882a','#00882a','#0055cc','#0055cc'];
+            let result = '';
+            for (let i = 0; i < str.length; i++) {
+                const ci = offset + i;
+                const color = ci < 6 ? colors[ci] : '#666';
+                result += '<span style="color:' + color + '">' + escapeHtml(str[i]) + '</span>';
+            }
+            return result;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        realInput.addEventListener('input', () => {
+            inputValue = realInput.value.replace(/^#/, '').toUpperCase().substring(0, 6);
+            realInput.value = inputValue;
+            renderFakeInput();
+            if (inputValue === '002FA7' || inputValue === '......') triggerSuccess();
         });
+
+        realInput.addEventListener('keyup', (e) => {
+            if (['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) renderFakeInput();
+        });
+
+        realInput.addEventListener('mouseup', () => { if (isInputActive) renderFakeInput(); });
 
         realInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') deactivateRealInput();
@@ -1104,7 +1069,7 @@
             const now = performance.now();
             const dt = now - lastPointerTime;
             if (dt > 0) {
-                // Exponentieller Durchschnitt für stabile Velociy
+                // Exponentieller Durchschnitt für stabile Velocity
                 const instantVX = -(e.clientY - lastPointerY) * DRAG_SENSITIVITY;
                 const instantVY = (e.clientX - lastPointerX) * DRAG_SENSITIVITY;
                 velocity.x = velocity.x * 0.5 + instantVX * 0.5;
@@ -1118,7 +1083,6 @@
             startY = e.clientY;
         });
 
-        // pointerup auf window UND scene (mit Capture) — verhindert "stuck drag"
         function handlePointerUp(e) {
             if (!isDragging) return;
             isDragging = false;
@@ -1325,7 +1289,6 @@
         function startImplosionSequence() {
             isSuccessPlaying = true;
 
-            // Sofortiges visuelles Feedback am Input
             fakeInput.style.backgroundColor = '#d4edda';
             fakeInput.style.color = '#155724';
             fakeInput.style.borderColor = '#28a745';
