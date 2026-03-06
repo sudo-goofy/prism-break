@@ -535,10 +535,10 @@
             height: auto;
             transform-origin: bottom center;
             transform: translateY(100%) scale(1.1);
-            transition: transform 12s cubic-bezier(0.1, 0.8, 0.2, 1);
-            /* 5s für extrem langsames, episches Erscheinen */
-            transition-delay: 3s;
-            /* Wartet geduldig auf das Yay */
+            transition: transform 6s cubic-bezier(0.1, 0.8, 0.2, 1);
+            /* Von 12s auf 6s — episch ohne ermüdend */
+            transition-delay: 2.5s;
+            /* Leicht früher, fühlt sich reaktiver an */
 
             /* WICHTIG: Da das Bild transparent ist, brauchen wir KEIN Multiply! */
             /* mix-blend-mode: multiply;  <-- ENTFERNT */
@@ -704,11 +704,25 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: white;
+            /* Yves Klein Blau statt generischem Weiß */
+            background: radial-gradient(ellipse at 50% 50%, #4a6fd4 0%, #002FA7 60%, #001a5e 100%);
             opacity: 0;
             pointer-events: none;
             z-index: 9999;
             will-change: opacity;
+        }
+
+        /* Pulsring: sofortiges visuelles Feedback bei richtiger Eingabe */
+        .pulse-ring {
+            position: fixed;
+            border-radius: 50%;
+            border: 4px solid #002FA7;
+            pointer-events: none;
+            z-index: 9998;
+            width: 60px;
+            height: 60px;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 1;
         }
 
         .camera-shake {
@@ -1192,6 +1206,29 @@
             shakeElement(messageArea);
         }
 
+        function spawnPulseRing() {
+            // Sofortiges visuelles Feedback: Pulsring vom Input-Feld aus
+            const rect = fakeInput.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 3; i++) {
+                const ring = document.createElement('div');
+                ring.className = 'pulse-ring';
+                ring.style.left = cx + 'px';
+                ring.style.top = cy + 'px';
+                document.body.appendChild(ring);
+                gsap.to(ring, {
+                    scale: 8 + i * 4,
+                    opacity: 0,
+                    duration: 0.8 + i * 0.2,
+                    delay: i * 0.12,
+                    ease: 'power2.out',
+                    onComplete: () => ring.remove()
+                });
+            }
+        }
+
         function triggerSuccess() {
             if (isSolved) return;
             isSolved = true;
@@ -1201,109 +1238,142 @@
             gsap.set(messageArea, { autoAlpha: 0 });
             gsap.to(controlsContainer, { scale: 0, duration: 0.3 });
 
-            // Success Style
-            fakeInput.style.backgroundColor = "#d4edda";
-            fakeInput.style.color = "#155724";
-            fakeInput.style.borderColor = "#28a745";
-            gsap.fromTo(fakeInput, { scale: 1 }, { scale: 1.2, duration: 0.1, yoyo: true, repeat: 1 });
+            // SOFORT: Pulsring-Feedback und Input-Highlight
+            fakeInput.style.backgroundColor = '#d4edda';
+            fakeInput.style.color = '#155724';
+            fakeInput.style.borderColor = '#28a745';
+            gsap.fromTo(fakeInput, { scale: 1 }, { scale: 1.15, duration: 0.12, yoyo: true, repeat: 1 });
+            spawnPulseRing();
 
-            // 1. ANTICIPATION: Aufladen!
-            // Schnelle Rotation, leichtes Wackeln, Scale Up
+            // 1. ANTICIPATION: Aufladen — Oktaeder dreht sich und sammelt Energie
             gsap.killTweensOf(currentRot);
             gsap.to(currentRot, {
-                y: currentRot.y + 720, // 2 volle Umdrehungen
+                y: currentRot.y + 540,
                 x: 0,
-                duration: 1.2,
-                ease: "expo.in",
+                duration: 1.0,
+                ease: 'power2.in',
                 onUpdate: () => {
                     displayRot.x = currentRot.x;
                     displayRot.y = currentRot.y;
                     updateOctahedron();
                 }
             });
-
-            gsap.to("#octahedron-wrapper", {
-                scale: 1.2, // "Einatmen"
-                y: 50,      // Leicht nach unten ausholen
-                duration: 1.0,
-                ease: "power2.in"
+            gsap.to('#octahedron-wrapper', {
+                scale: 1.25,
+                y: 30,
+                duration: 0.85,
+                ease: 'power2.in'
             });
 
-            // 2. THE DROP (nach 1.0s)
+            // 2. HELD BREATH: kurzes Einfrieren (cinematischer Beat)
             setTimeout(() => {
-                // Flash Overlay
-                const flash = document.getElementById('flash-overlay');
-                gsap.to(flash, {
-                    opacity: 1, duration: 0.05, onComplete: () => {
-                        gsap.to(flash, { opacity: 0, duration: 1.5, ease: "power2.out" });
+                gsap.to(currentRot, { y: currentRot.y, duration: 0.35, ease: 'none',
+                    onUpdate: () => {
+                        displayRot.x = currentRot.x;
+                        displayRot.y = currentRot.y;
+                        updateOctahedron();
                     }
                 });
+                gsap.to('#octahedron-wrapper', { scale: 1.3, y: 20, duration: 0.35, ease: 'power1.out' });
+            }, 850);
+
+            // 3. THE DROP
+            setTimeout(() => {
+                // Yves Klein Blau Flash — thematisch statt generisch weiß
+                const flash = document.getElementById('flash-overlay');
+                gsap.fromTo(flash,
+                    { opacity: 0 },
+                    { opacity: 0.9, duration: 0.07,
+                        onComplete: () => gsap.to(flash, { opacity: 0, duration: 1.8, ease: 'power2.out' })
+                    }
+                );
 
                 // Screen Shake
                 document.body.classList.add('camera-shake');
-                setTimeout(() => document.body.classList.remove('camera-shake'), 600);
+                setTimeout(() => document.body.classList.remove('camera-shake'), 500);
 
-                // Szene aktivieren
-                document.getElementById('success-scene').classList.add('active');
+                // Hintergrund-Zoom
                 document.body.classList.add('zoomed-out');
 
-                // Oktaeder fliegt extrem schnell nach oben weg
-                gsap.to("#octahedron-wrapper", {
-                    scale: 0.1,       // Wird winzig
-                    y: -800,          // Fliegt massiv nach oben
-                    rotation: 180,    // Zusätzlicher Spin
-                    duration: 0.6,
-                    ease: "power4.in",
+                // Oktaeder: kurzer Scale-Pop, dann blitzschnell nach oben
+                gsap.to('#octahedron-wrapper', {
+                    scale: 1.5,
+                    duration: 0.08,
+                    ease: 'power4.out',
                     onComplete: () => {
-                        octahedron.classList.add('solved'); // Faces ausblenden
+                        // Licht-Trail: Oktaeder lässt einen Schimmer zurück
+                        gsap.to('#octahedron-wrapper', {
+                            scale: 0.05,
+                            y: -900,
+                            rotation: 720,
+                            filter: 'blur(8px) brightness(3)',
+                            duration: 0.55,
+                            ease: 'power4.in',
+                            onComplete: () => {
+                                octahedron.classList.add('solved');
+                                gsap.set('#octahedron-wrapper', { visibility: 'hidden' });
 
-                        // EXPLOSION: Partikelregen
-                        const colors = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6'];
-                        const fragment = document.createDocumentFragment();
-                        for (let i = 0; i < 80; i++) {
-                            const star = document.createElement('div');
-                            star.className = 'explode-star';
-                            // Zufällige Form: Kreis oder Stern
-                            const isCircle = Math.random() > 0.5;
-                            const color = colors[Math.floor(Math.random() * colors.length)];
+                                // Szene aktivieren (erst hier, damit Flash zuerst wahrgenommen wird)
+                                document.getElementById('success-scene').classList.add('active');
 
-                            if (isCircle) {
-                                star.style.borderRadius = '50%';
-                                star.style.backgroundColor = color;
-                                star.style.width = '12px'; star.style.height = '12px';
-                            } else {
-                                star.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z" fill="${color}" /></svg>`;
+                                // EXPLOSION: Partikel in RGB-Rätsel-Farben + Gold
+                                // Stimmig: die drei Farbkanäle des Rätsels plus Gold als Highlight
+                                const colors = [
+                                    '#ff0000', '#ff3333', // Rot-Kanal
+                                    '#00aa44', '#00ff66', // Grün-Kanal
+                                    '#002FA7', '#3366ff', '#6699ff', // Blau-Kanal (dominant = Yves Klein)
+                                    '#f1c40f', '#fff' // Gold + Weiß als Akzent
+                                ];
+                                const fragment = document.createDocumentFragment();
+                                for (let i = 0; i < 90; i++) {
+                                    const star = document.createElement('div');
+                                    star.className = 'explode-star';
+                                    // Blaue Partikel häufiger (thematisch dominant)
+                                    const colorIndex = Math.random() < 0.45
+                                        ? 4 + Math.floor(Math.random() * 3)  // Blau-Töne
+                                        : Math.floor(Math.random() * colors.length);
+                                    const color = colors[colorIndex];
+                                    const isCircle = Math.random() > 0.4;
+
+                                    if (isCircle) {
+                                        star.style.borderRadius = '50%';
+                                        star.style.backgroundColor = color;
+                                        const sz = (8 + Math.random() * 10) + 'px';
+                                        star.style.width = sz; star.style.height = sz;
+                                    } else {
+                                        star.innerHTML = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M12 0 L15 9 L24 12 L15 15 L12 24 L9 15 L0 12 L9 9 Z" fill="${color}" /></svg>`;
+                                    }
+
+                                    star.style.position = 'fixed';
+                                    star.style.left = '50%';
+                                    star.style.top = '40%'; // Leicht über Mitte — wirkt natürlicher
+                                    star.style.zIndex = 999;
+                                    fragment.appendChild(star);
+
+                                    const angle = Math.random() * Math.PI * 2;
+                                    // Mehr Partikel nach oben (Richtung Yay-Text)
+                                    const upBias = Math.random() < 0.5 ? -1 : 0;
+                                    const speed = 120 + Math.random() * 380;
+                                    const tx = Math.cos(angle) * speed;
+                                    const ty = Math.sin(angle) * speed + upBias * 200;
+
+                                    gsap.to(star, {
+                                        x: tx, y: ty,
+                                        rotation: Math.random() * 900,
+                                        scale: Math.random() * 2.5 + 0.3,
+                                        opacity: 0,
+                                        duration: 1.2 + Math.random() * 1.2,
+                                        ease: 'power3.out',
+                                        onComplete: () => star.remove()
+                                    });
+                                }
+                                document.body.appendChild(fragment);
                             }
-
-                            star.style.position = 'fixed'; // Fixed, damit sie nicht mit dem Wrapper wegfliegen
-                            star.style.left = '50%';
-                            star.style.top = '50%';
-                            star.style.zIndex = 999;
-
-                            fragment.appendChild(star);
-
-                            // Explosions-Physik
-                            const angle = Math.random() * Math.PI * 2;
-                            const velocity = 100 + Math.random() * 400; // Radius
-                            const tx = Math.cos(angle) * velocity;
-                            const ty = Math.sin(angle) * velocity;
-
-                            gsap.to(star, {
-                                x: tx,
-                                y: ty,
-                                rotation: Math.random() * 720,
-                                scale: Math.random() * 2 + 0.5,
-                                opacity: 0,
-                                duration: 1.5 + Math.random(),
-                                ease: "power3.out",
-                                onComplete: () => star.remove()
-                            });
-                        }
-                        document.body.appendChild(fragment);
+                        });
                     }
                 });
 
-            }, 1000); // Timing matcht die "Einatmen"-Phase
+            }, 1250); // 850ms anticipation + 350ms held breath + 50ms puffer
         }
 
         // Initialer Aufruf
